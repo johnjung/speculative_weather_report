@@ -49,18 +49,21 @@ class Weather:
     def get_time(self, dt_string):
         d = self.historical_headers.index('DATE')
         if dt_string:
-            if self.historical_data[-1][d] <= dt_string:
-                closest_dt_string = self.historical_data[-1][i]
-            else:
-                for r in self.historical_data:
-                    if r[d] > dt_string:
-                        closest_dt_string = r[i]
-                        break
-         m = re.search('^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):\d{2}$', closest_dt_string)
-         if 
+            r = len(self.historical_data) - 1
+            while r >= 0:
+                if r == 0 or self.historical_data[r][d] < dt_string:
+                    closest_dt_string = self.historical_data[r][d]
+                    break
+                r = r - 1
+        dt = datetime.datetime.strptime(closest_dt_string, "%Y-%m-%dT%H:%M:%S")
+        return dt.strftime("%-I:%M %p")
 
     def get_temperature(self, dt_string):
         return self.get_historical('HourlyDryBulbTemperature', dt_string)
+
+    def get_heat_index(self, dt_string):
+        # see https://en.wikipedia.org/wiki/Heat_index
+        raise NotImplementedError
 
     def get_historical(self, field, dt_string=None):
         i = self.historical_headers.index(field)
@@ -194,7 +197,7 @@ if __name__=='__main__':
                 now.second
             )
         sys.stdout.write("Chicago, IL\n")
-        sys.stdout.write("as of 2:59 pm CDT\n")
+        sys.stdout.write("as of {}\n".format(w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>'])))
         sys.stdout.write("{} degrees\n".format(w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])))
         sys.stdout.write("partly cloudy\n")
         sys.stdout.write("feels like 79 degrees\n")
