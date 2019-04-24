@@ -8,13 +8,13 @@ This is work in progress for a weather visualization.
 
 Some interesting fields:
 
-HourlyDewPointTemperature
-HourlyDryBulbTemperature
-HourlyPrecipitation
-HourlyRelativeHumidity
-HourlySeaLevelPressure
-HourlySkyConditions
-HourlyStationPressure
-HourlyVisibility
-HourlyWindDirection
-HourlyWindSpeed
+* HourlyDewPointTemperature
+* HourlyDryBulbTemperature
+* HourlyPrecipitation
+* HourlyRelativeHumidity
+* HourlySeaLevelPressure
+* HourlySkyConditions
+* HourlyStationPressure
+* HourlyVisibility
+* HourlyWindDirection
+* HourlyWindSpeed
