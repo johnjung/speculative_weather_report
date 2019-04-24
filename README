@@ -1,0 +1,55 @@
+The Weather and Climatology UChicago libGuide (http://guides.lib.uchicago.edu/c.php?g=297202&p=1983949)
+links to the NCEI Data Access for Land-Based Data (https://www.ncdc.noaa.gov/data-access/land-based-station-data/land-based-datasets)
+The top link is for Local Climatological Data (LCD) which is what I want. 
+
+I downloaded a few things, 1711054.csv contains hourly measurements. Here are
+some interesting fields:
+
+AQ 43 HourlyDewPointTemperature
+AR 44 HourlyDryBulbTemperature
+AS 45 HourlyPrecipitation
+AW 49 HourlyRelativeHumidity
+AX 50 HourlySeaLevelPressure
+AY 51 HourlySkyConditions
+AZ 52 HourlyStationPressure
+BA 53 HourlyVisibility
+BC 55 HourlyWindDirection
+BE 57 HourlyWindSpeed
+
+1709305.csv contains hourly normals. Here are some interesting fields:
+ W 23 HLY-DEWP-NORMAL
+AM    HLY-TEMP-NORMAL
+AY 51 HLY-WIND_AVGSPD
+BC    HLY-WIND-VCTDIR
+
+1709000.csv contains monthly normals.
+
+Example temperature: normal 24.2, observed 9
+observed temperature: 44. normal temperature is 58.6. 
+
+70 degrees - 28...42. 
+58, 12 degrees above. 
+80 degrees. 
+
+***
+
+Links:
+
+See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt for documentation
+about field names.
+
+ASOS User's Guide
+https://www.weather.gov/media/asos/aum-toc.pdf
+
+See https://en.wikipedia.org/wiki/METAR for weather types. 
+
+For Wind direction, north is 360. goes clockwise. 0 is calm. 
+
+Abbreviations for cloud cover: FEW (1/8 to 2/8 cloud coverage) SCT (scattered,
+3/8-4/8), BKN (broken, 5/8-7/8) OVC (overcast, 8/8 coverage.)
+
+***
+
+1. go to https://www.ncdc.noaa.gov/cdo-web/datatools/lcd
+2. choose a zipcode.
+3. download LCD CSV.
