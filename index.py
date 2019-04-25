@@ -11,6 +11,7 @@
 
 import csv
 import datetime
+import math
 import sqlite3
 import sys
 from docopt import docopt
@@ -46,37 +47,52 @@ class Weather:
         self.conn.execute('''CREATE TABLE local_climate_data
              (date text, trans text, symbol text, qty real, price real)''')
 
-    def get_time(self, dt_string):
-        d = self.historical_headers.index('DATE')
-        if dt_string:
-            r = len(self.historical_data) - 1
-            while r >= 0:
-                if r == 0 or self.historical_data[r][d] < dt_string:
-                    closest_dt_string = self.historical_data[r][d]
-                    break
-                r = r - 1
-        dt = datetime.datetime.strptime(closest_dt_string, "%Y-%m-%dT%H:%M:%S")
-        return dt.strftime("%-I:%M %p")
+    def get_relative_humidity(self, dt_string):
+        return int(self.get_historical('HourlyRelativeHumidity', dt_string))
 
     def get_temperature(self, dt_string):
-        return self.get_historical('HourlyDryBulbTemperature', dt_string)
+        return int(self.get_historical('HourlyDryBulbTemperature', dt_string))
 
-    def get_heat_index(self, dt_string):
-        # see https://en.wikipedia.org/wiki/Heat_index
+    def get_h_temperature(self, dt_string):
         raise NotImplementedError
 
-    def get_historical(self, field, dt_string=None):
-        i = self.historical_headers.index(field)
+    def get_l_temperature(self, dt_string):
+        raise NotImplementedError
+
+    def get_time(self, dt_string):
+        return self.get_historical('DATE', dt_string)
+
+    def get_heat_index(self, dt_string):
+        t = self.get_temperature(dt_string)
+        r = self.get_relative_humidity(dt_string)
+        # see https://en.wikipedia.org/wiki/Heat_index
+        return int(
+            sum([
+                -42.379,
+                  2.04901523   * t,
+                 10.14333127   * r,
+                 -0.22475541   * t * r,
+                 -6.83783e-03  * math.pow(t, 2),
+                 -5.481717e-02 * math.pow(r, 2),
+                  1.22874e-03  * math.pow(t, 2) * r,
+                  8.5282e-04   * t * math.pow(r, 2),
+                 -1.99e-06     * math.pow(t, 2) * math.pow(r, 2)
+            ])
+        )
+
+    def get_closest_past_index(self, dt_string):
         d = self.historical_headers.index('DATE')
-        if dt_string:
-            if self.historical_data[-1][d] <= dt_string:
-                return self.historical_data[-1][i]
-            else:
-                for r in self.historical_data:
-                    if r[d] > dt_string:
-                        return r[i]
-        else:
-            return [r[i] for r in self.historical_data]
+        r = len(self.historical_data) - 1
+        while r >= 0:
+            if self.historical_data[r][d] < dt_string:
+                break
+            r = r - 1
+        return r
+
+    def get_historical(self, field, dt_string):
+        r = self.get_closest_past_index(dt_string)
+        f = self.historical_headers.index(field)
+        return self.historical_data[r][f]
 
     def get_normal(self, field, month=None):
         i = self.normal_headers.index(field)
@@ -107,72 +123,7 @@ if __name__=='__main__':
         sys.stdout.write('\n'.join(w.normal_headers + [""]))
         sys.exit()
     elif arguments['help']:
-        sys.stdout.write((
-            'SAMPLE HISTORICAL HEADERS\n\n'
-            'ACMH\n'
-            'Average cloudiness midnight to midnight from manual observations (percent)\n\n'
-            'ACSH\n'
-            'Average cloudiness sunrise to sunset from manual observations (percent)\n\n'
-            'AWDR\n'
-            'Average daily wind direction (degrees)\n\n'
-            'AWND\n'
-            'Average daily wind speed (tenths of meters per second)\n\n'
-            'PRCP\n'
-            'Precipitation (tenths of mm)\n\n'
-   	    'SNOW\n'
-            'Snowfall (mm)\n\n'
-	    'SNWD\n'
-            'Snow depth (mm)\n\n'
-            'TAVG\n'
-            'Average temperature (tenths of degrees C)\n\n'
-            'TMAX\n'
-            'Maximum temperature (tenths of degrees C)\n\n'
-            'TMIN\n'
-            'Minimum temperature (tenths of degrees C)\n\n'
-  	    'WT** = Weather Type where ** has one of the following values:\n'
-            '01 = Fog, ice fog, or freezing fog (may include heavy fog)\n'
-            '02 = Heavy fog or heaving freezing fog (not always distinquished from fog)\n'
-            '03 = Thunder\n'
-            '04 = Ice pellets, sleet, snow pellets, or small hail\n'
-            '05 = Hail (may include small hail)\n'
-            '06 = Glaze or rime\n'
-            '07 = Dust, volcanic ash, blowing dust, blowing sand, or blowing obstruction\n'
-            '08 = Smoke or haze\n'
-            '09 = Blowing or drifting snow\n'
-            '10 = Tornado, waterspout, or funnel cloud\n'
-            '11 = High or damaging winds\n'
-            '12 = Blowing spray\n'
-            '13 = Mist\n'
-            '14 = Drizzle\n'
-            '15 = Freezing drizzle\n'
-            '16 = Rain (may include freezing rain, drizzle, and freezing drizzle)\n'
-            '17 = Freezing rain\n'
-            '18 = Snow, snow pellets, snow grains, or ice crystals\n'
-            '19 = Unknown source of precipitation\n'
-            '21 = Ground fog\n'
-            '22 = Ice fog or freezing fog\n\n'
-            'WV** = Weather in the Vicinity where ** has one of the following values:\n'
-            '01 = Fog, ice fog, or freezing fog (may include heavy fog)\n'
-            '03 = Thunder\n'
-            '07 = Ash, dust, sand, or other blowing obstruction\n'
-            '18 = Snow or ice crystals\n'
-            '20 = Rain or snow shower\n\n'
-            'SAMPLE NORMAL HEADERS\n\n'
-            'MLY-TMIN-NORMAL\n'
-            'Long-term averages of annual minimum temperature\n\n'
-            'MLY-TMIN-STDDEV\n'
-            'Long-term standard deviations of annual minimum temperature\n\n'
-            'MLY-TAVG-NORMAL\n'
-            'Long-term averages of annual average temperature\n\n'
-            'MLY-TAVG-STDDEV\n'
-            'Long-term standard deviations of annual average temperature\n\n'
-            'MLY-TMAX-NORMAL\n'
-            'Long-term averages of monthly maximum temperature\n\n'
-            'MLY-TMAX-STDDEV\n'
-            'Long-term standard deviations of monthly maximum temperature\n\n'
-            'MLY-PRCP-NORMAL\n\n'
-            'MLY-SNOW-NORMAL\n'))
-        sys.exit()
+        raise NotImplementedError
     elif arguments['get_historical']:
         data = w.get_historical(arguments['<field>'], arguments['<yyyymmdd>'])
         if isinstance(data, str):
@@ -196,15 +147,29 @@ if __name__=='__main__':
                 now.minute,
                 now.second
             )
+
+        #w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>']).strftime("%-I:%M %p")
+
         sys.stdout.write("Chicago, IL\n")
-        sys.stdout.write("as of {}\n".format(w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>'])))
-        sys.stdout.write("{} degrees\n".format(w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])))
+        sys.stdout.write("as of {}\n".format( 
+            datetime.datetime.strptime(
+                w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>']),
+                '%Y-%m-%dT%H:%M:%S'
+            ).strftime('%-I:%M %p')
+        ))
+        sys.stdout.write("{} degrees\n".format(
+            w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("partly cloudy\n")
-        sys.stdout.write("feels like 79 degrees\n")
+        sys.stdout.write("feels like {} degrees\n".format(
+            w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("H 78 degrees / L 50 degrees\n")
         sys.stdout.write("UV index 5 of 10\n")
         sys.stdout.write("wind: S 18 mph\n")
-        sys.stdout.write("humidity: 33%\n")
+        sys.stdout.write("humidity: {}%\n".format(
+            w.get_relative_humidity(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("dew point: 48 degrees\n")
         sys.stdout.write("pressure 29.95 down\n")
         sys.stdout.write("visibility 10.0 mi\n")
