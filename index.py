@@ -101,6 +101,18 @@ class Weather:
         '''
         return self.get_historical('DATE', dt_string)
 
+    def get_wind_direction_and_speed(self, dt_string):
+        d = self.get_historical('HourlyWindDirection', dt_string)
+        if d == '0':
+            return 'still'
+
+        directions = ('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S',
+                      'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N')
+        direction = directions[int(float(d) / 22.5)]
+
+        s = self.get_historical('HourlyWindSpeed', dt_string)
+        return '{}mph {}'.format(s, direction)
+
     def get_heat_index(self, dt_string):
         '''Calculate the heat index: see
         https://en.wikipedia.org/wiki/Heat_index.
@@ -221,7 +233,9 @@ if __name__=='__main__':
             w.get_l_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
         sys.stdout.write("UV index 5 of 10\n")
-        sys.stdout.write("wind: S 18 mph\n")
+        sys.stdout.write("wind: {}\n".format(
+            w.get_wind_direction_and_speed(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("humidity: {}%\n".format(
             w.get_relative_humidity(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
@@ -242,8 +256,8 @@ if __name__=='__main__':
     #     coming from.)
 
     # self.local_climateology_data_fields = ('STATION', 'DATE',
-    #     'HourlyDewPointTemperature', 'HourlyDryBulbTemperature',
-    #     'HourlyPrecipitation', 'HourlyRelativeHumidity',
+    #     
+    #     'HourlyPrecipitation'
     #     'HourlySeaLevelPressure', 'HourlySkyConditions',
     #     'HourlyStationPressure', 'HourlyVisibility', 'HourlyWindDirection',
     #     'HourlyWindSpeed')
