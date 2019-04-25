@@ -47,6 +47,9 @@ class Weather:
         self.conn.execute('''CREATE TABLE local_climate_data
              (date text, trans text, symbol text, qty real, price real)''')
 
+    def get_dew_point(self, dt_string):
+        return int(self.get_historical('HourlyDewPointTemperature', dt_string))
+
     def get_relative_humidity(self, dt_string):
         return int(self.get_historical('HourlyRelativeHumidity', dt_string))
 
@@ -54,10 +57,28 @@ class Weather:
         return int(self.get_historical('HourlyDryBulbTemperature', dt_string))
 
     def get_h_temperature(self, dt_string):
-        raise NotImplementedError
+        # TODO: debug
+        r1 = self.get_closest_past_index(dt_string.split('T')[0] + 'T00:00:00')
+        r2 = self.get_closest_past_index(dt_string.split('T')[0] + 'T23:59:59')
+        f = self.historical_headers.index('HourlyDryBulbTemperature')
+        temps = []
+        r = r1
+        while r <= r2:
+            temps.append(self.historical_data[r][f])
+            r = r + 1
+        return max(temps)
 
     def get_l_temperature(self, dt_string):
-        raise NotImplementedError
+        # TODO: debug
+        r1 = self.get_closest_past_index(dt_string.split('T')[0] + 'T00:00:00')
+        r2 = self.get_closest_past_index(dt_string.split('T')[0] + 'T23:59:59')
+        f = self.historical_headers.index('HourlyDryBulbTemperature')
+        temps = []
+        r = r1
+        while r <= r2:
+            temps.append(self.historical_data[r][f])
+            r = r + 1
+        return min(temps)
 
     def get_time(self, dt_string):
         return self.get_historical('DATE', dt_string)
@@ -148,8 +169,6 @@ if __name__=='__main__':
                 now.second
             )
 
-        #w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>']).strftime("%-I:%M %p")
-
         sys.stdout.write("Chicago, IL\n")
         sys.stdout.write("as of {}\n".format( 
             datetime.datetime.strptime(
@@ -164,13 +183,18 @@ if __name__=='__main__':
         sys.stdout.write("feels like {} degrees\n".format(
             w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("H 78 degrees / L 50 degrees\n")
+        sys.stdout.write("H {} degrees / L {} degrees\n".format(
+            w.get_h_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>']),
+            w.get_l_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("UV index 5 of 10\n")
         sys.stdout.write("wind: S 18 mph\n")
         sys.stdout.write("humidity: {}%\n".format(
             w.get_relative_humidity(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("dew point: 48 degrees\n")
+        sys.stdout.write("dew point: {} degrees\n".format(
+            w.get_dew_point(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("pressure 29.95 down\n")
         sys.stdout.write("visibility 10.0 mi\n")
         sys.stdout.write("Mauna Loa Carbon Count: 410ppm\n")
