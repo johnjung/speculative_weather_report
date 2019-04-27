@@ -164,7 +164,8 @@ class Weather:
 
         directions = ('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S',
                       'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N')
-        direction = directions[int(float(d) / 22.5)]
+        i = int(round(float(d) / 22.5))
+        direction = directions[i % 16]
 
         s = self.get_historical('HourlyWindSpeed', dt_string)
         return '{}mph {}'.format(s, direction)
