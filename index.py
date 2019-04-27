@@ -116,8 +116,7 @@ class Weather:
                     lambda t: t != '',
                     self.get_historical_range(
                         'HourlyDryBulbTemperature',
-                        dt_string.split('T')[0] + 'T00:00:00',
-                        dt_string.split('T')[0] + 'T23:59:59'
+                        *self.get_daily_timestring_range(dt_string)
                     )
                 )
             )
@@ -137,8 +136,7 @@ class Weather:
                     lambda t: t != '',
                     self.get_historical_range(
                         'HourlyDryBulbTemperature',
-                        dt_string.split('T')[0] + 'T00:00:00',
-                        dt_string.split('T')[0] + 'T23:59:59'
+                        *self.get_daily_timestring_range(dt_string)
                     )
                 )
             )
@@ -153,6 +151,55 @@ class Weather:
         :returns a datetime string.
         '''
         return self.get_historical('DATE', dt_string)
+
+    def get_future_hourly_timestrings(self, dt_string):
+        '''Get 23 hours worth of future time strings- each timestring starts
+        from the beginning of the hour.
+        '''
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
+        dt_string = '{}:00:00'.format(m.group(1))
+        dt = datetime.datetime.strptime(
+            dt_string,
+            '%Y-%m-%dT%H:%M:%S'
+        )
+
+        dt_strings = []
+        for h in range(1, 24):
+            dt_strings.append(
+                (dt + datetime.timedelta(hours=h)).strftime(
+                    '%Y-%m-%dT%H:%M:%S'
+                )
+            )
+        return dt_strings
+
+    def get_future_daily_timestrings(self, dt_string):
+        '''Get 6 days worth of future time strings- each timestring starts
+        from the beginning of the day.
+        '''
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', dt_string)
+        dt_string = '{}T00:00:00'.format(m.group(1))
+        dt = datetime.datetime.strptime(
+            dt_string,
+            '%Y-%m-%dT%H:%M:%S'
+        )
+
+        dt_strings = []
+        for d in range(1, 7):
+            dt_strings.append(
+                (dt + datetime.timedelta(days=d)).strftime(
+                    '%Y-%m-%dT%H:%M:%S'
+                )
+            )
+        return dt_strings
+
+    def get_daily_timestring_range(self, dt_string):
+        '''For a given datetime string, get the earliest and latest timestrings
+        for the day.
+        '''
+        return (
+            dt_string.split('T')[0] + 'T00:00:00',
+            dt_string.split('T')[0] + 'T23:59:59'
+        )
 
     def get_visibility(self, dt_string):
         return int(float(self.get_historical('HourlyVisibility', dt_string)))
