@@ -89,7 +89,7 @@ class Weather:
             self.get_historical('HourlySkyConditions', dt_string)
         )
         try:
-            return matches.group(1)
+            return conditions[matches.group(1)]
         except AttributeError:
             return ''
 
