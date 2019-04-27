@@ -16,15 +16,15 @@ import sys
 from docopt import docopt
 
 class Weather:
-    def __init__(self):
-        self.conn = sqlite3.connect('weather.db')
-
+    def __init__(self, dt_string):
+        self.dt_string = dt_string
         with open('1711054.csv') as f:
             reader = csv.reader(f)
             self.historical_headers = next(reader, None)
             self.historical_data = []
             for row in reader:
                 self.historical_data.append(row)
+        self.i = self.get_closest_past_index(dt_string)
 
     def create_database(self):
         self.conn.execute('''CREATE TABLE local_climate_data
@@ -38,25 +38,21 @@ class Weather:
         carbon_counts = (410, 480, 550, 630, 700, 800, 900, 1000, 1200, 1400)
         return carbon_counts[temperature_increase]
 
-    def get_dew_point(self, dt_string):
+    def get_dew_point(self):
         '''Get the dew point.
-
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
 
         :returns the dew point temperature as an integer in F. 
         '''
-        return int(self.get_historical('HourlyDewPointTemperature', dt_string))
+        return int(self.get_historical('HourlyDewPointTemperature'))
 
-    def get_relative_humidity(self, dt_string):
+    def get_relative_humidity(self):
         '''Get the relative humidity.
-
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
 
         :returns the relative humidity as an integer from 0 to 100. 
         '''
-        return int(self.get_historical('HourlyRelativeHumidity', dt_string))
+        return int(self.get_historical('HourlyRelativeHumidity'))
 
-    def get_sky_conditions(self, dt_string):
+    def get_sky_conditions(self):
         '''Get sky conditions. These are recorded in the data in a string like:
 
         FEW:02 70 SCT:04 200 BKN:07 250
@@ -87,26 +83,23 @@ class Weather:
 
         matches = re.search(
             '([A-Z]{3}):[0-9]{2} [0-9]{3}$',
-            self.get_historical('HourlySkyConditions', dt_string)
+            self.get_historical('HourlySkyConditions')
         )
         try:
             return conditions[matches.group(1)]
         except AttributeError:
             return ''
 
-    def get_temperature(self, dt_string):
+    def get_temperature(self):
         '''Get the dry bulb temperature ("the temperature")
-
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
 
         :returns the temperature as an integer in F.
         '''
-        return int(self.get_historical('HourlyDryBulbTemperature', dt_string))
+        return int(self.get_historical('HourlyDryBulbTemperature'))
 
-    def get_temperature_summary(self, dt_string, summary_type):
+    def get_temperature_summary(self, summary_type):
         '''Get the high temperature for the day.
 
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
         :param str summary_type: one of 'min', 'max', 'mean'
 
         :returns the high temperature as an integer in F.
@@ -117,7 +110,7 @@ class Weather:
                 lambda t: t != '',
                 self.get_historical_range(
                     'HourlyDryBulbTemperature',
-                    *self.get_daily_timestring_range(dt_string)
+                    *self.get_daily_timestring_range()
                 )
             )
         )
@@ -130,24 +123,21 @@ class Weather:
         else:
             raise ValueError
 
-    def get_time(self, dt_string):
+    def get_time(self):
         '''Get the closest past time in historical data for a specific
         date/time.
 
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
-
         :returns a datetime string.
         '''
-        return self.get_historical('DATE', dt_string)
+        return self.get_historical('DATE')
 
-    def get_future_hourly_timestrings(self, dt_string):
+    def get_future_hourly_timestrings(self):
         '''Get 23 hours worth of future time strings- each timestring starts
         from the beginning of the hour.
         '''
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
-        dt_string = '{}:00:00'.format(m.group(1))
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', self.dt_string)
         dt = datetime.datetime.strptime(
-            dt_string,
+            '{}:00:00'.format(m.group(1)),
             '%Y-%m-%dT%H:%M:%S'
         )
 
@@ -160,14 +150,13 @@ class Weather:
             )
         return dt_strings
 
-    def get_future_daily_timestrings(self, dt_string):
+    def get_future_daily_timestrings(self):
         '''Get 6 days worth of future time strings- each timestring starts
         from the beginning of the day.
         '''
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', dt_string)
-        dt_string = '{}T00:00:00'.format(m.group(1))
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', self.dt_string)
         dt = datetime.datetime.strptime(
-            dt_string,
+            '{}T00:00:00'.format(m.group(1)),
             '%Y-%m-%dT%H:%M:%S'
         )
 
@@ -180,20 +169,20 @@ class Weather:
             )
         return dt_strings
 
-    def get_daily_timestring_range(self, dt_string):
+    def get_daily_timestring_range(self):
         '''For a given datetime string, get the earliest and latest timestrings
         for the day.
         '''
         return (
-            dt_string.split('T')[0] + 'T00:00:00',
-            dt_string.split('T')[0] + 'T23:59:59'
+            self.dt_string.split('T')[0] + 'T00:00:00',
+            self.dt_string.split('T')[0] + 'T23:59:59'
         )
 
-    def get_visibility(self, dt_string):
-        return int(float(self.get_historical('HourlyVisibility', dt_string)))
+    def get_visibility(self):
+        return int(float(self.get_historical('HourlyVisibility')))
 
-    def get_wind_direction_and_speed(self, dt_string):
-        d = self.get_historical('HourlyWindDirection', dt_string)
+    def get_wind_direction_and_speed(self):
+        d = self.get_historical('HourlyWindDirection')
         if d == '0':
             return 'still'
 
@@ -202,21 +191,19 @@ class Weather:
         i = int(round(float(d) / 22.5))
         direction = directions[i % 16]
 
-        s = self.get_historical('HourlyWindSpeed', dt_string)
+        s = self.get_historical('HourlyWindSpeed')
         return '{}mph {}'.format(s, direction)
 
-    def get_heat_index(self, dt_string):
+    def get_heat_index(self):
         '''Calculate the heat index: see
         https://en.wikipedia.org/wiki/Heat_index.
 
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
-
         :returns a heat index temperature in F as an integer.
         '''
-        t = self.get_temperature(dt_string)
+        t = self.get_temperature()
         if t < 80:
             return None
-        r = self.get_relative_humidity(dt_string)
+        r = self.get_relative_humidity()
         if r < 40:
             return None
         return int(
@@ -237,29 +224,25 @@ class Weather:
         '''Find the closest past index represented in historical data for a
         given date/time string.
 
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
-
         :returns an index (integer).
         '''
         d = self.historical_headers.index('DATE')
         r = len(self.historical_data) - 1
         while r >= 0:
-            if self.historical_data[r][d] < dt_string:
+            if self.historical_data[r][d] < self.dt_string:
                 break
             r = r - 1
         return r
 
-    def get_historical(self, field, dt_string):
+    def get_historical(self, field):
         '''Get a single historical data point.
 
         :param str field: the field name.
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
 
         :returns the data as a string.
         '''
-        r = self.get_closest_past_index(dt_string)
         f = self.historical_headers.index(field)
-        return self.historical_data[r][f]
+        return self.historical_data[self.i][f]
 
     def get_historical_range(self, field, dt_string_lo, dt_string_hi):
         '''Get a range of historical data points. 
@@ -284,8 +267,18 @@ class Weather:
 
 if __name__=='__main__':
     arguments = docopt(__doc__)
+    if not arguments['<YYYY-mm-ddTHH:MM:SS>']:
+        now = datetime.datetime.now()
+        arguments['<YYYY-mm-ddTHH:MM:SS>'] = '{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
+            2010, 
+            now.month,
+            now.day,
+            now.hour,
+            now.minute,
+            now.second
+        )
 
-    w = Weather()
+    w = Weather(arguments['<YYYY-mm-ddTHH:MM:SS>'])
     temperature_increase = 0
 
     if arguments['add']:
@@ -294,61 +287,49 @@ if __name__=='__main__':
         sys.stdout.write('\n'.join(w.historical_headers + [""]))
         sys.exit()
     elif arguments['get_historical']:
-        data = w.get_historical(arguments['<field>'], arguments['<yyyymmdd>'])
+        data = w.get_historical(arguments['<field>'])
         if isinstance(data, str):
             sys.stdout.write(data + '\n')
         elif isinstance(data, list):
             sys.stdout.write('\n'.join(data + ['']))
     elif arguments['weather']:
-        if not arguments['<YYYY-mm-ddTHH:MM:SS>']:
-            now = datetime.datetime.now()
-            arguments['<YYYY-mm-ddTHH:MM:SS>'] = '{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
-                2010, 
-                now.month,
-                now.day,
-                now.hour,
-                now.minute,
-                now.second
-            )
-            sys.stdout.write("Using {}\n".format(arguments['<YYYY-mm-ddTHH:MM:SS>']))
-
         sys.stdout.write("Chicago, IL\n")
 
         sys.stdout.write("as of {}\n".format( 
             datetime.datetime.strptime(
-                w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>']),
+                w.get_time(),
                 '%Y-%m-%dT%H:%M:%S'
             ).strftime('%-I:%M %p')
         ))
         sys.stdout.write("{} degrees\n".format(
-            w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_temperature()
         ))
 
-        sky_conditions =  w.get_sky_conditions(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        sky_conditions =  w.get_sky_conditions()
         if sky_conditions:
             sys.stdout.write('{}\n'.format(
                 sky_conditions
             ))
      
-        heat_index =  w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        heat_index =  w.get_heat_index()
         if heat_index:
             sys.stdout.write("feels like {} degrees\n".format(heat_index))
 
         sys.stdout.write("H {} degrees / L {} degrees\n".format(
-            w.get_temperature_summary(arguments['<YYYY-mm-ddTHH:MM:SS>'], 'max'),
-            w.get_temperature_summary(arguments['<YYYY-mm-ddTHH:MM:SS>'], 'min')
+            w.get_temperature_summary('max'),
+            w.get_temperature_summary('min')
         ))
         sys.stdout.write("wind: {}\n".format(
-            w.get_wind_direction_and_speed(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_wind_direction_and_speed()
         ))
         sys.stdout.write("humidity: {}%\n".format(
-            w.get_relative_humidity(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_relative_humidity()
         ))
         sys.stdout.write("dew point: {} degrees\n".format(
-            w.get_dew_point(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_dew_point()
         ))
         sys.stdout.write("visibility {} mi\n".format(
-            w.get_visibility(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_visibility()
         ))
         sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
             w.get_carbon_count(temperature_increase)
