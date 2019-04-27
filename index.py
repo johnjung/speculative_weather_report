@@ -110,12 +110,15 @@ class Weather:
         :returns the high temperature as an integer in F.
         '''
         return max(
-            filter(
-                lambda t: t != '',
-                self.get_historical_range(
-                    'HourlyDryBulbTemperature',
-                    dt_string.split('T')[0] + 'T00:00:00',
-                    dt_string.split('T')[0] + 'T23:59:59'
+            map(
+                lambda t: int(t),
+                filter(
+                    lambda t: t != '',
+                    self.get_historical_range(
+                        'HourlyDryBulbTemperature',
+                        dt_string.split('T')[0] + 'T00:00:00',
+                        dt_string.split('T')[0] + 'T23:59:59'
+                    )
                 )
             )
         )
@@ -128,12 +131,15 @@ class Weather:
         :returns the low temperature as an integer in F.
         '''
         return min(
-            filter(
-                lambda t: t != '',
-                self.get_historical_range(
-                    'HourlyDryBulbTemperature',
-                    dt_string.split('T')[0] + 'T00:00:00',
-                    dt_string.split('T')[0] + 'T23:59:59'
+            map(
+                lambda t: int(t),
+                filter(
+                    lambda t: t != '',
+                    self.get_historical_range(
+                        'HourlyDryBulbTemperature',
+                        dt_string.split('T')[0] + 'T00:00:00',
+                        dt_string.split('T')[0] + 'T23:59:59'
+                    )
                 )
             )
         )
@@ -271,6 +277,7 @@ if __name__=='__main__':
             sys.stdout.write("Using {}\n".format(arguments['<YYYY-mm-ddTHH:MM:SS>']))
 
         sys.stdout.write("Chicago, IL\n")
+
         sys.stdout.write("as of {}\n".format( 
             datetime.datetime.strptime(
                 w.get_time(arguments['<YYYY-mm-ddTHH:MM:SS>']),
@@ -290,6 +297,7 @@ if __name__=='__main__':
         heat_index =  w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         if heat_index:
             sys.stdout.write("feels like {} degrees\n".format(heat_index))
+
         sys.stdout.write("H {} degrees / L {} degrees\n".format(
             w.get_h_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>']),
             w.get_l_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
@@ -312,8 +320,6 @@ if __name__=='__main__':
         sys.exit()
 
     # TODO
-    # 1. deal with sorting: because numbers are currently sorted as strings, 99 can
-    # sort after 101. 
     # 2. add the db, check timings to be sure lookups are fast.
     # 3. deal with 'holes' in the data where a measurement wasn't available. 
     #    (i get these from the lo temperature function, check to see where they're
