@@ -9,6 +9,7 @@
 import csv
 import datetime
 import math
+import re
 import sqlite3
 import sys
 from docopt import docopt
@@ -47,7 +48,42 @@ class Weather:
         return int(self.get_historical('HourlyRelativeHumidity', dt_string))
 
     def get_sky_conditions(self, dt_string):
-        return self.get_historical('HourlySkyConditions', dt_string)
+        '''Get sky conditions. These are recorded in the data in a string like:
+
+        FEW:02 70 SCT:04 200 BKN:07 250
+ 
+        Although this data field is often blank, very often zero or more data
+        chunks in the following format will be included:
+
+        [A-Z]{3}:[0-9]{2} [0-9]{2}
+
+        The three letter sequence indicates cloud cover according to the dict
+        below. The two digit sequence immediately following indicates the
+        coverage of a layer in oktas (i.e. eigths) of sky covered. The final 
+        three digit sequence describes the height of the cloud layer, in 
+        hundreds of feet: e.g., 50 = 5000 feet. It is also possible for this
+        string to include data that indicates that it was not possible to 
+        observe the sky because of obscuring phenomena like smoke or fog. 
+
+        The last three-character chunk provides the best summary of 
+        current sky conditions.
+        '''
+        conditions = {
+           'CLR': 'clear sky',
+           'FEW': 'few clouds',
+           'SCT': 'scattered clouds',
+           'BKN': 'broken clouds',
+           'OVC': 'overcast'
+        }
+
+        matches = re.search(
+            '([A-Z]{3}):[0-9]{2} [0-9]{3}$',
+            self.get_historical('HourlySkyConditions', dt_string)
+        )
+        try:
+            return matches.group(1)
+        except AttributeError:
+            return ''
 
     def get_temperature(self, dt_string):
         '''Get the dry bulb temperature ("the temperature")
@@ -223,6 +259,7 @@ if __name__=='__main__':
                 now.minute,
                 now.second
             )
+            sys.stdout.write("Using {}\n".format(arguments['<YYYY-mm-ddTHH:MM:SS>']))
 
         sys.stdout.write("Chicago, IL\n")
         sys.stdout.write("as of {}\n".format( 
@@ -234,9 +271,12 @@ if __name__=='__main__':
         sys.stdout.write("{} degrees\n".format(
             w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write('{}\n'.format(
-            w.get_sky_conditions(arguments['<YYYY-mm-ddTHH:MM:SS>'])
-        ))
+
+        sky_conditions =  w.get_sky_conditions(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        if sky_conditions:
+            sys.stdout.write('{}\n'.format(
+                sky_conditions
+            ))
      
         heat_index =  w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         if heat_index:
@@ -274,3 +314,14 @@ if __name__=='__main__':
     #     'HourlySeaLevelPressure', 'HourlySkyConditions',
     #     'HourlyStationPressure', 'HourlyVisibility', 'HourlyWindDirection',
     #     'HourlyWindSpeed')
+    #
+    # there can be multiple records with the same timestamp. See:
+    # 2010-04-27T01:51:00
+    #
+    # some data doesn't always appear- see sky conditions for an example. 
+    # add a feature to search backwards for the last observation from a point
+    # in time.
+    #
+    # always uses LST- no adjustments are made for daylight savings time. 
+
+    # PDF of data: 1715893.pdf. includes documentation.
