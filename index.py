@@ -29,6 +29,14 @@ class Weather:
         self.conn.execute('''CREATE TABLE local_climate_data
              (date text, trans text, symbol text, qty real, price real)''')
 
+    def get_carbon_count(self, temperature_increase):
+        '''Get an estimated carbon count in ppm for a temperature increase
+        given in F, compared to current levels:
+        http://dels.nas.edu/resources/static-assets/materials-based-on-reports/booklets/warming_world_final.pdf
+        '''
+        carbon_counts = (410, 480, 550, 630, 700, 800, 900, 1000, 1200, 1400)
+        return carbon_counts[temperature_increase]
+
     def get_dew_point(self, dt_string):
         '''Get the dew point.
 
@@ -236,6 +244,7 @@ if __name__=='__main__':
     arguments = docopt(__doc__)
 
     w = Weather()
+    temperature_increase = 0
 
     if arguments['add']:
         pass
@@ -297,7 +306,9 @@ if __name__=='__main__':
         sys.stdout.write("visibility {} mi\n".format(
             w.get_visibility(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("Mauna Loa Carbon Count: 410ppm\n")
+        sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
+            w.get_carbon_count(temperature_increase)
+        ))
         sys.exit()
 
     # TODO
@@ -323,5 +334,3 @@ if __name__=='__main__':
     # in time.
     #
     # always uses LST- no adjustments are made for daylight savings time. 
-
-    # PDF of data: 1715893.pdf. includes documentation.
