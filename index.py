@@ -46,6 +46,9 @@ class Weather:
         '''
         return int(self.get_historical('HourlyRelativeHumidity', dt_string))
 
+    def get_sky_conditions(self, dt_string):
+        return self.get_historical('HourlySkyConditions', dt_string)
+
     def get_temperature(self, dt_string):
         '''Get the dry bulb temperature ("the temperature")
 
@@ -101,6 +104,9 @@ class Weather:
         '''
         return self.get_historical('DATE', dt_string)
 
+    def get_visibility(self, dt_string):
+        return int(float(self.get_historical('HourlyVisibility', dt_string)))
+
     def get_wind_direction_and_speed(self, dt_string):
         d = self.get_historical('HourlyWindDirection', dt_string)
         if d == '0':
@@ -122,7 +128,11 @@ class Weather:
         :returns a heat index temperature in F as an integer.
         '''
         t = self.get_temperature(dt_string)
+        if t < 80:
+            return None
         r = self.get_relative_humidity(dt_string)
+        if r < 40:
+            return None
         return int(
             sum(
                 [-42.379,
@@ -224,15 +234,17 @@ if __name__=='__main__':
         sys.stdout.write("{} degrees\n".format(
             w.get_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("partly cloudy\n")
-        sys.stdout.write("feels like {} degrees\n".format(
-            w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        sys.stdout.write('{}\n'.format(
+            w.get_sky_conditions(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
+     
+        heat_index =  w.get_heat_index(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        if heat_index:
+            sys.stdout.write("feels like {} degrees\n".format(heat_index))
         sys.stdout.write("H {} degrees / L {} degrees\n".format(
             w.get_h_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>']),
             w.get_l_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("UV index 5 of 10\n")
         sys.stdout.write("wind: {}\n".format(
             w.get_wind_direction_and_speed(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
@@ -242,8 +254,9 @@ if __name__=='__main__':
         sys.stdout.write("dew point: {} degrees\n".format(
             w.get_dew_point(arguments['<YYYY-mm-ddTHH:MM:SS>'])
         ))
-        sys.stdout.write("pressure 29.95 down\n")
-        sys.stdout.write("visibility 10.0 mi\n")
+        sys.stdout.write("visibility {} mi\n".format(
+            w.get_visibility(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+        ))
         sys.stdout.write("Mauna Loa Carbon Count: 410ppm\n")
         sys.exit()
 
