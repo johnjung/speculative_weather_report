@@ -26,10 +26,6 @@ class Weather:
                 self.historical_data.append(row)
         self.i = self.get_closest_past_index(dt_string)
 
-    def create_database(self):
-        self.conn.execute('''CREATE TABLE local_climate_data
-             (date text, trans text, symbol text, qty real, price real)''')
-
     def get_carbon_count(self, temperature_increase):
         '''Get an estimated carbon count in ppm for a temperature increase
         given in F, compared to current levels:
@@ -229,7 +225,7 @@ class Weather:
         d = self.historical_headers.index('DATE')
         r = len(self.historical_data) - 1
         while r >= 0:
-            if self.historical_data[r][d] < self.dt_string:
+            if self.historical_data[r][d] < dt_string:
                 break
             r = r - 1
         return r
