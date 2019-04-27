@@ -119,6 +119,12 @@ class Weather:
         else:
             raise ValueError
 
+    def get_temperature_summary_hourly(self):
+        return (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23)
+
+    def get_temperature_summary_daily(self):
+        return (1,2,3,4,5,6)
+
     def get_time(self):
         '''Get the closest past time in historical data for a specific
         date/time.
@@ -330,6 +336,23 @@ if __name__=='__main__':
         sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
             w.get_carbon_count(temperature_increase)
         ))
+        sys.stdout.write("Predictions for the next 24 hours...\n")
+        sys.stdout.write(
+            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
+                *w.get_temperature_summary_hourly()[:12]
+            )
+        )
+        sys.stdout.write(
+            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
+                *w.get_temperature_summary_hourly()[12:]
+            )
+        )
+        sys.stdout.write("Predictions for the next 7 days...\n")
+        sys.stdout.write(
+            '{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
+                *w.get_temperature_summary_daily()
+            )
+        )
         sys.exit()
 
     # TODO
