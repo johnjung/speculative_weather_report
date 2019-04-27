@@ -11,6 +11,7 @@ import datetime
 import math
 import re
 import sqlite3
+import statistics
 import sys
 from docopt import docopt
 
@@ -102,45 +103,32 @@ class Weather:
         '''
         return int(self.get_historical('HourlyDryBulbTemperature', dt_string))
 
-    def get_h_temperature(self, dt_string):
+    def get_temperature_summary(self, dt_string, summary_type):
         '''Get the high temperature for the day.
 
         :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
+        :param str summary_type: one of 'min', 'max', 'mean'
 
         :returns the high temperature as an integer in F.
         '''
-        return max(
-            map(
-                lambda t: int(t),
-                filter(
-                    lambda t: t != '',
-                    self.get_historical_range(
-                        'HourlyDryBulbTemperature',
-                        *self.get_daily_timestring_range(dt_string)
-                    )
+        temperatures = map(
+            lambda t: int(t),
+            filter(
+                lambda t: t != '',
+                self.get_historical_range(
+                    'HourlyDryBulbTemperature',
+                    *self.get_daily_timestring_range(dt_string)
                 )
             )
         )
-
-    def get_l_temperature(self, dt_string):
-        '''Get the low temperature for the day.
-
-        :param str dt_string: a datetime string, e.g. "2019-04-23T09:30:00"
-
-        :returns the low temperature as an integer in F.
-        '''
-        return min(
-            map(
-                lambda t: int(t),
-                filter(
-                    lambda t: t != '',
-                    self.get_historical_range(
-                        'HourlyDryBulbTemperature',
-                        *self.get_daily_timestring_range(dt_string)
-                    )
-                )
-            )
-        )
+        if summary_type == 'min':
+            return min(temperatures)
+        elif summary_type == 'max':
+            return max(temperatures)
+        elif summary_type == 'mean':
+            return int(statistics.mean(temperatures))
+        else:
+            raise ValueError
 
     def get_time(self, dt_string):
         '''Get the closest past time in historical data for a specific
@@ -347,8 +335,8 @@ if __name__=='__main__':
             sys.stdout.write("feels like {} degrees\n".format(heat_index))
 
         sys.stdout.write("H {} degrees / L {} degrees\n".format(
-            w.get_h_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>']),
-            w.get_l_temperature(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+            w.get_temperature_summary(arguments['<YYYY-mm-ddTHH:MM:SS>'], 'max'),
+            w.get_temperature_summary(arguments['<YYYY-mm-ddTHH:MM:SS>'], 'min')
         ))
         sys.stdout.write("wind: {}\n".format(
             w.get_wind_direction_and_speed(arguments['<YYYY-mm-ddTHH:MM:SS>'])
