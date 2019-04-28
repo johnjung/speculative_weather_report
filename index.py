@@ -9,10 +9,12 @@
 import csv
 import datetime
 import math
+import random
 import re
 import sqlite3
 import statistics
 import sys
+import textwrap
 from docopt import docopt
 
 class Weather:
@@ -25,6 +27,7 @@ class Weather:
             for row in reader:
                 self.historical_data.append(row)
         self.i = self.get_closest_past_index(dt_string)
+        random.seed()
 
     def get_carbon_count(self, temperature_increase):
         '''Get an estimated carbon count in ppm for a temperature increase
@@ -242,8 +245,8 @@ class Weather:
         return int(float(self.get_historical('HourlyVisibility')))
 
     def get_wind_direction_and_speed(self):
-        d = self.get_historical('HourlyWindDirection')
-        if d == '0':
+        d = int(self.get_historical('HourlyWindDirection'))
+        if d == 0:
             return 'still'
 
         directions = ('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S',
@@ -328,6 +331,32 @@ class Weather:
             r = r + 1
         return out
 
+    def get_advertisement(self):
+        ads = (("Skirts, blouses and accessories. Up to 45% off. Shop Now.", "Noracora"),
+               ("Your future's looking up with our new student loan. Competitive interest rates. Multiple repayment options. No origination fee. Get started now.", "Sallie Mae"),
+               ("Shop non-traditional jewelry designs.", "Brilliant Earth"),
+               ("Khakis for all seasons. All season tech.", "Dockers"))
+        return random.choice(ads)[0]
+
+    def get_news(self):
+        news = (("Troubling Trend Since 2020s for Great Lakes. Superior, Huron and Erie have seen the greatest declines. See more.",
+                 "Troubling Trend Since 1970s for Great Lakes. Superior, Huron and Erie have seen the greatest declines. See more."),
+                ("Freeze in May? Here's Who Is Likely to See One.",
+                 "Freeze in May? Here's Who Is Likely to See One."),
+                ("Incoming Severe Threat This Week",
+                 "Incoming Severe Threat This Week"),
+                ("Winter Storm Central: Blizzard Conditions Likely; Travel Nearly Impossible",
+                 "Winter Storm Central: Blizzard Conditions Likely; Travel Nearly Impossible"),
+                ("Allergy: Tips for An Allergy-Free Spring Road Trip",
+                 "Allergy: Tips for An Allergy-Free Spring Road Trip"),
+                ("Allergy: Worst Plants for Spring Allergies",
+                 "Allergy: Worst Plants for Spring Allergies"),
+                ("Tornado Safety and Preparedness: Safest Places to Wait Out A Tornado",
+                 "Tornado Safety and Preparedness: Safest Places to Wait Out A Tornado"),
+                ("Allergy: Spring Allergy Capitals: Which City Ranks the Worst",
+                 "Allergy: Spring Allergy Capitals: Which City Ranks the Worst"))
+        return [n[0] for n in random.sample(news, 3)]
+
 
 if __name__=='__main__':
     arguments = docopt(__doc__)
@@ -363,7 +392,7 @@ if __name__=='__main__':
             datetime.datetime.strptime(
                 w.get_time(),
                 '%Y-%m-%dT%H:%M:%S'
-            ).strftime('%-I:%M %p')
+            ).strftime('%-I:%M%p')
         ))
         sys.stdout.write("{}°\n".format(
             w.get_temperature()
@@ -391,9 +420,6 @@ if __name__=='__main__':
         ))
         sys.stdout.write("dew point: {}°\n".format(
             w.get_dew_point()
-        ))
-        sys.stdout.write("visibility {} mi\n".format(
-            w.get_visibility()
         ))
         sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
             w.get_carbon_count(temperature_increase)
@@ -423,6 +449,19 @@ if __name__=='__main__':
         sys.stdout.write(
             '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} \n'.format(
                 *w.get_human_readable_timestrings_daily()
+            )
+        )
+        
+        for n in w.get_news():
+            sys.stdout.write(
+                '\n{}\n'.format(
+                    '\n'.join(textwrap.wrap(n))
+                )
+            )
+
+        sys.stdout.write(
+            '\n{}\n'.format(
+                '\n'.join(textwrap.wrap(w.get_advertisement()))
             )
         )
         sys.exit()
