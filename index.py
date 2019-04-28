@@ -340,21 +340,21 @@ class Weather:
 
     def get_news(self):
         news = (("Troubling Trend Since 2020s for Great Lakes. Superior, Huron and Erie have seen the greatest declines. See more.",
-                 "Troubling Trend Since 1970s for Great Lakes. Superior, Huron and Erie have seen the greatest declines. See more."),
+                 "weather.com 2019/04/28 (modified date)"),
                 ("Freeze in May? Here's Who Is Likely to See One.",
-                 "Freeze in May? Here's Who Is Likely to See One."),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Incoming Severe Threat This Week",
-                 "Incoming Severe Threat This Week"),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Winter Storm Central: Blizzard Conditions Likely; Travel Nearly Impossible",
-                 "Winter Storm Central: Blizzard Conditions Likely; Travel Nearly Impossible"),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Allergy: Tips for An Allergy-Free Spring Road Trip",
-                 "Allergy: Tips for An Allergy-Free Spring Road Trip"),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Allergy: Worst Plants for Spring Allergies",
-                 "Allergy: Worst Plants for Spring Allergies"),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Tornado Safety and Preparedness: Safest Places to Wait Out A Tornado",
-                 "Tornado Safety and Preparedness: Safest Places to Wait Out A Tornado"),
+                 "weather.com 2019/04/28 (verbatim)"),
                 ("Allergy: Spring Allergy Capitals: Which City Ranks the Worst",
-                 "Allergy: Spring Allergy Capitals: Which City Ranks the Worst"))
+                 "weather.com 2019/04/28 (verbatim)"))
         return [n[0] for n in random.sample(news, 3)]
 
 
