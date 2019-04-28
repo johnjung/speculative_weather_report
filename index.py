@@ -99,20 +99,23 @@ class Weather:
         else:
             return self.get_temperature(self.get_previous_hour_timestring(dt_string))
 
-    def get_temperature_summary(self, summary_type):
+    def get_temperature_summary(self, summary_type, dt_string=None):
         '''Get the high temperature for the day.
 
         :param str summary_type: one of 'min', 'max', 'mean'
 
         :returns the high temperature as an integer in F.
         '''
+        if dt_string == None:
+            dt_string = self.dt_string
+
         temperatures = map(
             lambda t: int(t),
             filter(
                 lambda t: t != '',
                 self.get_historical_range(
                     'HourlyDryBulbTemperature',
-                    *self.get_daily_timestring_range()
+                    *self.get_daily_timestring_range(dt_string)
                 )
             )
         )
@@ -133,10 +136,37 @@ class Weather:
                 out.append(temp)
         return out
 
-    def get_temperature_summary_daily(self):
+    def get_human_readable_timestrings_hourly(self):
+        out = []
+        for ts in self.get_future_hourly_timestrings():
+            out.append(
+                datetime.datetime.strptime(
+                    ts,
+                    '%Y-%m-%dT%H:%M:%S'
+                ).strftime('%-I%p')[:-1]
+            )
+        return out
+
+    def get_human_readable_timestrings_daily(self):
+        out = []
+        for d in range(1, 7):
+            out.append(
+                (datetime.datetime.now() + datetime.timedelta(days=d)).strftime('%a')
+            )
+        return out
+
+    def get_temperature_summary_daily_low(self):
         out = []
         for ts in self.get_future_daily_timestrings():
-            temp = self.get_temperature(ts)
+            temp = self.get_temperature_summary('min', ts)
+            if temp:
+                out.append(temp)
+        return out
+
+    def get_temperature_summary_daily_high(self):
+        out = []
+        for ts in self.get_future_daily_timestrings():
+            temp = self.get_temperature_summary('max', ts)
             if temp:
                 out.append(temp)
         return out
@@ -150,7 +180,7 @@ class Weather:
         return self.get_historical('DATE')
 
     def get_future_hourly_timestrings(self):
-        '''Get 23 hours worth of future time strings- each timestring starts
+        '''Get 24 hours worth of future time strings- each timestring starts
         from the beginning of the hour.
         '''
         m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', self.dt_string)
@@ -160,7 +190,7 @@ class Weather:
         )
 
         dt_strings = []
-        for h in range(1, 24):
+        for h in range(1, 25):
             dt_strings.append(
                 (dt + datetime.timedelta(hours=h)).strftime(
                     '%Y-%m-%dT%H:%M:%S'
@@ -197,13 +227,15 @@ class Weather:
             '%Y-%m-%dT%H:%M:%S'
         )
 
-    def get_daily_timestring_range(self):
+    def get_daily_timestring_range(self, dt_string=None):
         '''For a given datetime string, get the earliest and latest timestrings
         for the day.
         '''
+        if dt_string == None:
+            dt_string = self.dt_string
         return (
-            self.dt_string.split('T')[0] + 'T00:00:00',
-            self.dt_string.split('T')[0] + 'T23:59:59'
+            dt_string.split('T')[0] + 'T00:00:00',
+            dt_string.split('T')[0] + 'T23:59:59'
         )
 
     def get_visibility(self):
@@ -333,7 +365,7 @@ if __name__=='__main__':
                 '%Y-%m-%dT%H:%M:%S'
             ).strftime('%-I:%M %p')
         ))
-        sys.stdout.write("{} degrees\n".format(
+        sys.stdout.write("{}°\n".format(
             w.get_temperature()
         ))
 
@@ -345,9 +377,9 @@ if __name__=='__main__':
      
         heat_index =  w.get_heat_index()
         if heat_index:
-            sys.stdout.write("feels like {} degrees\n".format(heat_index))
+            sys.stdout.write("feels like {}°\n".format(heat_index))
 
-        sys.stdout.write("H {} degrees / L {} degrees\n".format(
+        sys.stdout.write("H {}° / L {}°\n".format(
             w.get_temperature_summary('max'),
             w.get_temperature_summary('min')
         ))
@@ -357,7 +389,7 @@ if __name__=='__main__':
         sys.stdout.write("humidity: {}%\n".format(
             w.get_relative_humidity()
         ))
-        sys.stdout.write("dew point: {} degrees\n".format(
+        sys.stdout.write("dew point: {}°\n".format(
             w.get_dew_point()
         ))
         sys.stdout.write("visibility {} mi\n".format(
@@ -366,16 +398,31 @@ if __name__=='__main__':
         sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
             w.get_carbon_count(temperature_increase)
         ))
-        sys.stdout.write("Predictions for the next 24 hours...\n")
+        sys.stdout.write("\nYour temperatures for the day:\n")
         sys.stdout.write(
-            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
+            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
                 *w.get_temperature_summary_hourly()
             )
         )
-        sys.stdout.write("Predictions for the next 7 days...\n")
         sys.stdout.write(
-            '{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
-                *w.get_temperature_summary_daily()
+            '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} \n'.format(
+                *w.get_human_readable_timestrings_hourly()
+            )
+        )
+        sys.stdout.write("\nYour temperatures for the next week:\n")
+        sys.stdout.write(
+            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
+                *w.get_temperature_summary_daily_high()
+            )
+        )
+        sys.stdout.write(
+            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
+                *w.get_temperature_summary_daily_low()
+            )
+        )
+        sys.stdout.write(
+            '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} \n'.format(
+                *w.get_human_readable_timestrings_daily()
             )
         )
         sys.exit()
