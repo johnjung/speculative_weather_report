@@ -86,12 +86,18 @@ class Weather:
         except AttributeError:
             return ''
 
-    def get_temperature(self):
+    def get_temperature(self, dt_string=None):
         '''Get the dry bulb temperature ("the temperature")
 
         :returns the temperature as an integer in F.
         '''
-        return int(self.get_historical('HourlyDryBulbTemperature'))
+        if dt_string == None:
+            dt_string = self.dt_string
+        temp_str = self.get_historical('HourlyDryBulbTemperature', dt_string)
+        if temp_str:
+            return int(temp_str)
+        else:
+            return self.get_temperature(self.get_previous_hour_timestring(dt_string))
 
     def get_temperature_summary(self, summary_type):
         '''Get the high temperature for the day.
@@ -120,10 +126,20 @@ class Weather:
             raise ValueError
 
     def get_temperature_summary_hourly(self):
-        return (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23)
+        out = []
+        for ts in self.get_future_hourly_timestrings():
+            temp = self.get_temperature(ts)
+            if temp:
+                out.append(temp)
+        return out
 
     def get_temperature_summary_daily(self):
-        return (1,2,3,4,5,6)
+        out = []
+        for ts in self.get_future_daily_timestrings():
+            temp = self.get_temperature(ts)
+            if temp:
+                out.append(temp)
+        return out
 
     def get_time(self):
         '''Get the closest past time in historical data for a specific
@@ -170,6 +186,16 @@ class Weather:
                 )
             )
         return dt_strings
+
+    def get_previous_hour_timestring(self, dt_string):
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
+        dt = datetime.datetime.strptime(
+            '{}:00:00'.format(m.group(1)),
+            '%Y-%m-%dT%H:%M:%S'
+        )
+        return (dt - datetime.timedelta(hours=1)).strftime(
+            '%Y-%m-%dT%H:%M:%S'
+        )
 
     def get_daily_timestring_range(self):
         '''For a given datetime string, get the earliest and latest timestrings
@@ -236,15 +262,19 @@ class Weather:
             r = r - 1
         return r
 
-    def get_historical(self, field):
+    def get_historical(self, field, dt_string=None):
         '''Get a single historical data point.
 
         :param str field: the field name.
 
         :returns the data as a string.
         '''
+        if dt_string:
+            i = self.get_closest_past_index(dt_string)
+        else:
+            i = self.i
         f = self.historical_headers.index(field)
-        return self.historical_data[self.i][f]
+        return self.historical_data[i][f]
 
     def get_historical_range(self, field, dt_string_lo, dt_string_hi):
         '''Get a range of historical data points. 
@@ -338,13 +368,8 @@ if __name__=='__main__':
         ))
         sys.stdout.write("Predictions for the next 24 hours...\n")
         sys.stdout.write(
-            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
-                *w.get_temperature_summary_hourly()[:12]
-            )
-        )
-        sys.stdout.write(
-            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
-                *w.get_temperature_summary_hourly()[12:]
+            '{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}{:4}\n'.format(
+                *w.get_temperature_summary_hourly()
             )
         )
         sys.stdout.write("Predictions for the next 7 days...\n")
@@ -354,25 +379,3 @@ if __name__=='__main__':
             )
         )
         sys.exit()
-
-    # TODO
-    # 2. add the db, check timings to be sure lookups are fast.
-    # 3. deal with 'holes' in the data where a measurement wasn't available. 
-    #    (i get these from the lo temperature function, check to see where they're
-    #     coming from.)
-
-    # self.local_climateology_data_fields = ('STATION', 'DATE',
-    #     
-    #     'HourlyPrecipitation'
-    #     'HourlySeaLevelPressure', 'HourlySkyConditions',
-    #     'HourlyStationPressure', 'HourlyVisibility', 'HourlyWindDirection',
-    #     'HourlyWindSpeed')
-    #
-    # there can be multiple records with the same timestamp. See:
-    # 2010-04-27T01:51:00
-    #
-    # some data doesn't always appear- see sky conditions for an example. 
-    # add a feature to search backwards for the last observation from a point
-    # in time.
-    #
-    # always uses LST- no adjustments are made for daylight savings time. 
