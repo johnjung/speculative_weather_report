@@ -6,6 +6,7 @@
     index.py weather [<YYYY-mm-ddTHH:MM:SS>]
 """
 
+import astral
 import csv
 import datetime
 import math
@@ -421,6 +422,19 @@ if __name__=='__main__':
         sys.stdout.write("dew point: {}°\n".format(
             w.get_dew_point()
         ))
+       
+        a = astral.Astral() 
+        city = a['Chicago']
+        sun = city.sun(date=datetime.datetime.now())
+        sys.stdout.write("Sunrise: {}\n".format(sun['sunrise'].strftime('%-I:%m%p')))
+        sys.stdout.write("Sunset: {}\n".format(sun['sunset'].strftime('%-I:%m%p')))
+
+        moon_phases = ('New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', 'New Moon')
+        i = int(float(a.moon_phase(date=datetime.datetime.now())) / 7.0)
+        sys.stdout.write("Moon phase: {}\n".format(
+            moon_phases[i]
+        ))
+
         sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
             w.get_carbon_count(temperature_increase)
         ))
