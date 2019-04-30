@@ -26,30 +26,30 @@ div#current_temp {
 div#place_and_time   { grid-area: 1 / 1  / 5 / 9;  }
 div#image            { grid-area: 1 / 9  / 5 / 17; }
 div#current_temp     { grid-area: 1 / 17 / 5 / 25; }
-div#hourly_status_1  { grid-area: 5 / 1  / 6 / 2;  }
-div#hourly_status_2  { grid-area: 5 / 2  / 6 / 3;  }
-div#hourly_status_3  { grid-area: 5 / 3  / 6 / 4;  }
-div#hourly_status_4  { grid-area: 5 / 4  / 6 / 5;  }
-div#hourly_status_5  { grid-area: 5 / 5  / 6 / 6;  }
-div#hourly_status_6  { grid-area: 5 / 6  / 6 / 7;  }
-div#hourly_status_7  { grid-area: 5 / 7  / 6 / 8;  }
-div#hourly_status_8  { grid-area: 5 / 8  / 6 / 9;  }
-div#hourly_status_9  { grid-area: 5 / 9  / 6 / 10; }
-div#hourly_status_10 { grid-area: 5 / 10 / 6 / 11; }
-div#hourly_status_11 { grid-area: 5 / 11 / 6 / 12; }
-div#hourly_status_12 { grid-area: 5 / 12 / 6 / 13; }
-div#hourly_status_13 { grid-area: 5 / 13 / 6 / 14; }
-div#hourly_status_14 { grid-area: 5 / 14 / 6 / 15; }
-div#hourly_status_15 { grid-area: 5 / 15 / 6 / 16; }
-div#hourly_status_16 { grid-area: 5 / 16 / 6 / 17; }
-div#hourly_status_17 { grid-area: 5 / 17 / 6 / 18; }
-div#hourly_status_18 { grid-area: 5 / 18 / 6 / 19; }
-div#hourly_status_19 { grid-area: 5 / 19 / 6 / 20; }
-div#hourly_status_20 { grid-area: 5 / 20 / 6 / 21; }
-div#hourly_status_21 { grid-area: 5 / 21 / 6 / 22; }
-div#hourly_status_22 { grid-area: 5 / 22 / 6 / 23; }
-div#hourly_status_23 { grid-area: 5 / 23 / 6 / 24; }
-div#hourly_status_24 { grid-area: 5 / 24 / 6 / 25; }
+div#hourly_forecast_1  { grid-area: 5 / 1  / 6 / 2;  }
+div#hourly_forecast_2  { grid-area: 5 / 2  / 6 / 3;  }
+div#hourly_forecast_3  { grid-area: 5 / 3  / 6 / 4;  }
+div#hourly_forecast_4  { grid-area: 5 / 4  / 6 / 5;  }
+div#hourly_forecast_5  { grid-area: 5 / 5  / 6 / 6;  }
+div#hourly_forecast_6  { grid-area: 5 / 6  / 6 / 7;  }
+div#hourly_forecast_7  { grid-area: 5 / 7  / 6 / 8;  }
+div#hourly_forecast_8  { grid-area: 5 / 8  / 6 / 9;  }
+div#hourly_forecast_9  { grid-area: 5 / 9  / 6 / 10; }
+div#hourly_forecast_10 { grid-area: 5 / 10 / 6 / 11; }
+div#hourly_forecast_11 { grid-area: 5 / 11 / 6 / 12; }
+div#hourly_forecast_12 { grid-area: 5 / 12 / 6 / 13; }
+div#hourly_forecast_13 { grid-area: 5 / 13 / 6 / 14; }
+div#hourly_forecast_14 { grid-area: 5 / 14 / 6 / 15; }
+div#hourly_forecast_15 { grid-area: 5 / 15 / 6 / 16; }
+div#hourly_forecast_16 { grid-area: 5 / 16 / 6 / 17; }
+div#hourly_forecast_17 { grid-area: 5 / 17 / 6 / 18; }
+div#hourly_forecast_18 { grid-area: 5 / 18 / 6 / 19; }
+div#hourly_forecast_19 { grid-area: 5 / 19 / 6 / 20; }
+div#hourly_forecast_20 { grid-area: 5 / 20 / 6 / 21; }
+div#hourly_forecast_21 { grid-area: 5 / 21 / 6 / 22; }
+div#hourly_forecast_22 { grid-area: 5 / 22 / 6 / 23; }
+div#hourly_forecast_23 { grid-area: 5 / 23 / 6 / 24; }
+div#hourly_forecast_24 { grid-area: 5 / 24 / 6 / 25; }
 div#daily_forecast_1 { grid-area: 6 / 1  / 8 / 5;  }
 div#daily_forecast_2 { grid-area: 6 / 5  / 8 / 9;  }
 div#daily_forecast_3 { grid-area: 6 / 9  / 8 / 13; }
@@ -63,30 +63,9 @@ div#news             { grid-area: 8 / 1  / 9 / 25; }
 <div id="place_and_time">{{ place }}<br/>Saturday, April 27, 2019<br/>as of {{ weather_data_time }}</div>
 <div id="image">{{ sky_conditions }}</div>
 <div id="current_temp">{{ temperature }}°</div>
-<div id="hourly_status_1">1</div>
-<div id="hourly_status_2">2</div>
-<div id="hourly_status_3">3</div>
-<div id="hourly_status_4">4</div>
-<div id="hourly_status_5">5</div>
-<div id="hourly_status_6">6</div>
-<div id="hourly_status_7">7</div>
-<div id="hourly_status_8">8</div>
-<div id="hourly_status_9">9</div>
-<div id="hourly_status_10">10</div>
-<div id="hourly_status_11">11</div>
-<div id="hourly_status_12">12</div>
-<div id="hourly_status_13">13</div>
-<div id="hourly_status_14">14</div>
-<div id="hourly_status_15">15</div>
-<div id="hourly_status_16">16</div>
-<div id="hourly_status_17">17</div>
-<div id="hourly_status_18">18</div>
-<div id="hourly_status_19">19</div>
-<div id="hourly_status_20">20</div>
-<div id="hourly_status_21">21</div>
-<div id="hourly_status_22">22</div>
-<div id="hourly_status_23">23</div>
-<div id="hourly_status_24">24</div>
+{% for f in hourly_forecast %}
+    <div id="hourly_forecast_{{ loop.index }}">{{ f['temp'] }}<br/>{{ f['time'] }}</div>
+{% endfor %}
 {% for f in daily_forecast %}
     <div id="daily_forecast_{{ loop.index }}">{{ f['low'] }}<br/>{{ f['high'] }}<br/>{{ f['day'] }}</div>
 {% endfor %}

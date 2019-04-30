@@ -128,58 +128,42 @@ class Weather:
         else:
             raise ValueError
 
-    def get_temperature_summary_hourly(self):
-        out = []
-        for ts in self.get_future_hourly_timestrings():
-            temp = self.get_temperature(ts)
-            if temp:
-                out.append(temp)
-        return out
-
-    def get_human_readable_timestrings_hourly(self):
-        out = []
-        for ts in self.get_future_hourly_timestrings():
-            out.append(
-                datetime.datetime.strptime(
-                    ts,
-                    '%Y-%m-%dT%H:%M:%S'
-                ).strftime('%-I%p')[:-1]
-            )
-        return out
-
-    def get_human_readable_timestrings_daily(self):
-        out = []
-        for d in range(1, 7):
-            out.append(
-                (datetime.datetime.now() + datetime.timedelta(days=d)).strftime('%a')
-            )
-        return out
-
-    def get_temperature_summary_daily_low(self):
-        out = []
-        for ts in self.get_future_daily_timestrings():
-            temp = self.get_temperature_summary('min', ts)
-            if temp:
-                out.append(temp)
-        return out
-
-    def get_temperature_summary_daily_high(self):
-        out = []
-        for ts in self.get_future_daily_timestrings():
-            temp = self.get_temperature_summary('max', ts)
-            if temp:
-                out.append(temp)
-        return out
-
-    def get_time(self):
-        '''Get the closest past time in historical data for a specific
-        date/time.
-
-        :returns a datetime string.
+    def get_daily_forecast_timestrings(self):
+        '''Get 6 days worth of future time strings- each timestring starts
+        from the beginning of the day.
         '''
-        return self.get_historical('DATE')
+        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', self.dt_string)
+        dt = datetime.datetime.strptime(
+            '{}T00:00:00'.format(m.group(1)),
+            '%Y-%m-%dT%H:%M:%S'
+        )
 
-    def get_future_hourly_timestrings(self):
+        dt_strings = []
+        for d in range(1, 7):
+            dt_strings.append(
+                (dt + datetime.timedelta(days=d)).strftime(
+                    '%Y-%m-%dT%H:%M:%S'
+                )
+            )
+        return dt_strings
+
+    def get_daily_forecast(self):
+        timestrings = self.get_daily_forecast_timestrings()
+      
+        forecast = [] 
+        for ts in timestrings:
+            forecast.append({
+                'ts':   ts,
+                'low':  self.get_temperature_summary('min', ts),
+                'high': self.get_temperature_summary('max', ts),
+                'day':  datetime.datetime.strptime(
+                            ts,
+                            '%Y-%m-%dT%H:%M:%S'
+                        ).strftime('%a')
+            })
+        return forecast
+
+    def get_hourly_forecast_timestrings(self):
         '''Get 24 hours worth of future time strings- each timestring starts
         from the beginning of the hour.
         '''
@@ -198,24 +182,28 @@ class Weather:
             )
         return dt_strings
 
-    def get_future_daily_timestrings(self):
-        '''Get 6 days worth of future time strings- each timestring starts
-        from the beginning of the day.
-        '''
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', self.dt_string)
-        dt = datetime.datetime.strptime(
-            '{}T00:00:00'.format(m.group(1)),
-            '%Y-%m-%dT%H:%M:%S'
-        )
+    def get_hourly_forecast(self):
+        timestrings = self.get_hourly_forecast_timestrings()
 
-        dt_strings = []
-        for d in range(1, 7):
-            dt_strings.append(
-                (dt + datetime.timedelta(days=d)).strftime(
-                    '%Y-%m-%dT%H:%M:%S'
-                )
-            )
-        return dt_strings
+        forecast = []
+        for ts in timestrings:
+            forecast.append({
+                'ts':   ts,
+                'temp': self.get_temperature(ts),
+                'time': datetime.datetime.strptime(
+                            ts,
+                            '%Y-%m-%dT%H:%M:%S'
+                        ).strftime('%-I%p')
+            })
+        return forecast
+
+    def get_time(self):
+        '''Get the closest past time in historical data for a specific
+        date/time.
+
+        :returns a datetime string.
+        '''
+        return self.get_historical('DATE')
 
     def get_previous_hour_timestring(self, dt_string):
         m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
@@ -369,101 +357,25 @@ def index():
         now.second
     ))
 
-    temperature_increase = 0
-    html = ''
-
-    heat_index =  w.get_heat_index()
-    if heat_index:
-        html += "feels like {}°<br/>".format(heat_index)
-
-    html += "H {}° / L {}°<br/>".format(
-        w.get_temperature_summary('max'),
-        w.get_temperature_summary('min')
-    )
-    html += "wind: {}<br/>".format(
-        w.get_wind_direction_and_speed()
-    )
-    html += "humidity: {}%<br/>".format(
-        w.get_relative_humidity()
-    )
-    html += "dew point: {}°<br/>".format(
-        w.get_dew_point()
-    )
-   
     a = astral.Astral() 
     city = a['Chicago']
     sun = city.sun(date=datetime.datetime.now())
-    html += "Sunrise: {}<br/>".format(sun['sunrise'].strftime('%-I:%m%p'))
-    html += "Sunset: {}<br/>".format(sun['sunset'].strftime('%-I:%m%p'))
+    "Sunrise: {}<br/>".format(sun['sunrise'].strftime('%-I:%m%p'))
+    "Sunset: {}<br/>".format(sun['sunset'].strftime('%-I:%m%p'))
 
     moon_phases = ('New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', 'New Moon')
     i = int(float(a.moon_phase(date=datetime.datetime.now())) / 7.0)
-    html += "Moon phase: {}<br/>".format(
-        moon_phases[i]
-    )
+    "Moon phase: {}<br/>".format(moon_phases[i])
 
-    html += "Mauna Loa Carbon Count: {}ppm<br/>".format(
-        w.get_carbon_count(temperature_increase)
-    )
-    html += "\nYour temperatures for the day:<br/>"
-    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>.'.format(
-       *w.get_temperature_summary_hourly()
-    )
-   
-    html += '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} <br/>'.format(
-        *w.get_human_readable_timestrings_hourly()
-    )
-    html += "\nYour temperatures for the next week:<br/>"
-
-    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>'.format(
-        *w.get_temperature_summary_daily_high()
-    )
-    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>'.format(
-        *w.get_temperature_summary_daily_low()
-    )
-    html += '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} <br/>'.format(
-        *w.get_human_readable_timestrings_daily()
-    )
-    
     return render_template('weather.html', **{
-        'place': 'Chicago',
+        'place':             'Chicago',
         'weather_data_time': datetime.datetime.strptime(
-            w.get_time(),
-            '%Y-%m-%dT%H:%M:%S'
-        ).strftime('%-I:%M%p'),
-        'sky_conditions': w.get_sky_conditions(),
-        'temperature': w.get_temperature(),
-        'daily_forecast': [
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Monday' 
-            },
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Tuesday' 
-            },
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Wednesday' 
-            },
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Thursday' 
-            },
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Friday' 
-            },
-            {
-                'low': '39',
-                'high': '70',
-                'day': 'Saturday' 
-            },
-        ],
-        'news': ' '.join(w.get_news()) + ' ' + w.get_advertisement()
+                                 w.get_time(),
+                                 '%Y-%m-%dT%H:%M:%S'
+                             ).strftime('%-I:%M%p'),
+        'sky_conditions':    w.get_sky_conditions(),
+        'temperature':       w.get_temperature(),
+        'daily_forecast':    w.get_daily_forecast(),
+        'hourly_forecast':   w.get_hourly_forecast(),
+        'news':              ' '.join(w.get_news()) + ' ' + w.get_advertisement()
     })
