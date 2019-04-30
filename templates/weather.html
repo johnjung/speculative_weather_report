@@ -50,12 +50,12 @@ div#hourly_status_21 { grid-area: 5 / 21 / 6 / 22; }
 div#hourly_status_22 { grid-area: 5 / 22 / 6 / 23; }
 div#hourly_status_23 { grid-area: 5 / 23 / 6 / 24; }
 div#hourly_status_24 { grid-area: 5 / 24 / 6 / 25; }
-div#daily_forecast div:nth-child(1) { grid-area: 6 / 1  / 8 / 5;  }
-div#daily_forecast div:nth-child(2) { grid-area: 6 / 5  / 8 / 9;  }
-div#daily_forecast div:nth-child(3) { grid-area: 6 / 9  / 8 / 13; }
-div#daily_forecast div:nth-child(4) { grid-area: 6 / 13 / 8 / 17; }
-div#daily_forecast div:nth-child(5) { grid-area: 6 / 17 / 8 / 21; }
-div#daily_forecast div:nth-child(6) { grid-area: 6 / 21 / 8 / 25; }
+div#daily_forecast_1 { grid-area: 6 / 1  / 8 / 5;  }
+div#daily_forecast_2 { grid-area: 6 / 5  / 8 / 9;  }
+div#daily_forecast_3 { grid-area: 6 / 9  / 8 / 13; }
+div#daily_forecast_4 { grid-area: 6 / 13 / 8 / 17; }
+div#daily_forecast_5 { grid-area: 6 / 17 / 8 / 21; }
+div#daily_forecast_6 { grid-area: 6 / 21 / 8 / 25; }
 div#news             { grid-area: 8 / 1  / 9 / 25; }
 </style>
 </head>
@@ -87,11 +87,9 @@ div#news             { grid-area: 8 / 1  / 9 / 25; }
 <div id="hourly_status_22">22</div>
 <div id="hourly_status_23">23</div>
 <div id="hourly_status_24">24</div>
-<div id="daily_forecast">
-    {% for f in daily_forecast %}
-        <div>{{ f['low'] }}<br/>{{ f['high'] }}<br/>{{ f['day'] }}</div>
-    {% endfor %}
-</div>
+{% for f in daily_forecast %}
+    <div id="daily_forecast_{{ loop.index }}">{{ f['low'] }}<br/>{{ f['high'] }}<br/>{{ f['day'] }}</div>
+{% endfor %}
 <div id="news">{{ news }}</div>
 </body>
 </html>
