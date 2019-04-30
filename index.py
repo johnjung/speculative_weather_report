@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-"""Usage:
-    index.py add
-    index.py historical_headers
-    index.py get_historical <field> [<yyyymmdd>]
-    index.py weather [<YYYY-mm-ddTHH:MM:SS>]
-"""
-
 import astral
 import csv
 import datetime
@@ -17,6 +9,10 @@ import statistics
 import sys
 import textwrap
 from docopt import docopt
+
+from flask import Flask, render_template
+app = Flask(__name__)
+app.debug = True
 
 class Weather:
     def __init__(self, dt_string):
@@ -359,123 +355,115 @@ class Weather:
         return [n[0] for n in random.sample(news, 3)]
 
 
-if __name__=='__main__':
-    arguments = docopt(__doc__)
-    if not arguments['<YYYY-mm-ddTHH:MM:SS>']:
-        now = datetime.datetime.now()
-        arguments['<YYYY-mm-ddTHH:MM:SS>'] = '{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
-            2010, 
-            now.month,
-            now.day,
-            now.hour,
-            now.minute,
-            now.second
-        )
 
-    w = Weather(arguments['<YYYY-mm-ddTHH:MM:SS>'])
+
+@app.route('/', methods=['GET'])
+def index():
+    now = datetime.datetime.now()
+    w = Weather('{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
+        2010, 
+        now.month,
+        now.day,
+        now.hour,
+        now.minute,
+        now.second
+    ))
+
     temperature_increase = 0
+    html = ''
 
-    if arguments['add']:
-        pass
-    if arguments['historical_headers']:
-        sys.stdout.write('\n'.join(w.historical_headers + [""]))
-        sys.exit()
-    elif arguments['get_historical']:
-        data = w.get_historical(arguments['<field>'])
-        if isinstance(data, str):
-            sys.stdout.write(data + '\n')
-        elif isinstance(data, list):
-            sys.stdout.write('\n'.join(data + ['']))
-    elif arguments['weather']:
-        sys.stdout.write("Chicago, IL\n")
+    heat_index =  w.get_heat_index()
+    if heat_index:
+        html += "feels like {}°<br/>".format(heat_index)
 
-        sys.stdout.write("as of {}\n".format( 
-            datetime.datetime.strptime(
-                w.get_time(),
-                '%Y-%m-%dT%H:%M:%S'
-            ).strftime('%-I:%M%p')
-        ))
-        sys.stdout.write("{}°\n".format(
-            w.get_temperature()
-        ))
+    html += "H {}° / L {}°<br/>".format(
+        w.get_temperature_summary('max'),
+        w.get_temperature_summary('min')
+    )
+    html += "wind: {}<br/>".format(
+        w.get_wind_direction_and_speed()
+    )
+    html += "humidity: {}%<br/>".format(
+        w.get_relative_humidity()
+    )
+    html += "dew point: {}°<br/>".format(
+        w.get_dew_point()
+    )
+   
+    a = astral.Astral() 
+    city = a['Chicago']
+    sun = city.sun(date=datetime.datetime.now())
+    html += "Sunrise: {}<br/>".format(sun['sunrise'].strftime('%-I:%m%p'))
+    html += "Sunset: {}<br/>".format(sun['sunset'].strftime('%-I:%m%p'))
 
-        sky_conditions =  w.get_sky_conditions()
-        if sky_conditions:
-            sys.stdout.write('{}\n'.format(
-                sky_conditions
-            ))
-     
-        heat_index =  w.get_heat_index()
-        if heat_index:
-            sys.stdout.write("feels like {}°\n".format(heat_index))
+    moon_phases = ('New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', 'New Moon')
+    i = int(float(a.moon_phase(date=datetime.datetime.now())) / 7.0)
+    html += "Moon phase: {}<br/>".format(
+        moon_phases[i]
+    )
 
-        sys.stdout.write("H {}° / L {}°\n".format(
-            w.get_temperature_summary('max'),
-            w.get_temperature_summary('min')
-        ))
-        sys.stdout.write("wind: {}\n".format(
-            w.get_wind_direction_and_speed()
-        ))
-        sys.stdout.write("humidity: {}%\n".format(
-            w.get_relative_humidity()
-        ))
-        sys.stdout.write("dew point: {}°\n".format(
-            w.get_dew_point()
-        ))
-       
-        a = astral.Astral() 
-        city = a['Chicago']
-        sun = city.sun(date=datetime.datetime.now())
-        sys.stdout.write("Sunrise: {}\n".format(sun['sunrise'].strftime('%-I:%m%p')))
-        sys.stdout.write("Sunset: {}\n".format(sun['sunset'].strftime('%-I:%m%p')))
+    html += "Mauna Loa Carbon Count: {}ppm<br/>".format(
+        w.get_carbon_count(temperature_increase)
+    )
+    html += "\nYour temperatures for the day:<br/>"
+    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>.'.format(
+       *w.get_temperature_summary_hourly()
+    )
+   
+    html += '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} <br/>'.format(
+        *w.get_human_readable_timestrings_hourly()
+    )
+    html += "\nYour temperatures for the next week:<br/>"
 
-        moon_phases = ('New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', 'New Moon')
-        i = int(float(a.moon_phase(date=datetime.datetime.now())) / 7.0)
-        sys.stdout.write("Moon phase: {}\n".format(
-            moon_phases[i]
-        ))
-
-        sys.stdout.write("Mauna Loa Carbon Count: {}ppm\n".format(
-            w.get_carbon_count(temperature_increase)
-        ))
-        sys.stdout.write("\nYour temperatures for the day:\n")
-        sys.stdout.write(
-            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
-                *w.get_temperature_summary_hourly()
-            )
-        )
-        sys.stdout.write(
-            '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} \n'.format(
-                *w.get_human_readable_timestrings_hourly()
-            )
-        )
-        sys.stdout.write("\nYour temperatures for the next week:\n")
-        sys.stdout.write(
-            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
-                *w.get_temperature_summary_daily_high()
-            )
-        )
-        sys.stdout.write(
-            '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°\n'.format(
-                *w.get_temperature_summary_daily_low()
-            )
-        )
-        sys.stdout.write(
-            '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} \n'.format(
-                *w.get_human_readable_timestrings_daily()
-            )
-        )
-        
-        for n in w.get_news():
-            sys.stdout.write(
-                '\n{}\n'.format(
-                    '\n'.join(textwrap.wrap(n))
-                )
-            )
-
-        sys.stdout.write(
-            '\n{}\n'.format(
-                '\n'.join(textwrap.wrap(w.get_advertisement()))
-            )
-        )
-        sys.exit()
+    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>'.format(
+        *w.get_temperature_summary_daily_high()
+    )
+    html += '{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°{:>4}°<br/>'.format(
+        *w.get_temperature_summary_daily_low()
+    )
+    html += '{:>4} {:>4} {:>4} {:>4} {:>4} {:>4} <br/>'.format(
+        *w.get_human_readable_timestrings_daily()
+    )
+    
+    return render_template('weather.html', **{
+        'place': 'Chicago',
+        'weather_data_time': datetime.datetime.strptime(
+            w.get_time(),
+            '%Y-%m-%dT%H:%M:%S'
+        ).strftime('%-I:%M%p'),
+        'sky_conditions': w.get_sky_conditions(),
+        'temperature': w.get_temperature(),
+        'daily_forecast': [
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Monday' 
+            },
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Tuesday' 
+            },
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Wednesday' 
+            },
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Thursday' 
+            },
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Friday' 
+            },
+            {
+                'low': '39',
+                'high': '70',
+                'day': 'Saturday' 
+            },
+        ],
+        'news': ' '.join(w.get_news()) + ' ' + w.get_advertisement()
+    })
