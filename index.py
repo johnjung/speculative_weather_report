@@ -41,6 +41,42 @@ class Weather:
         '''
         return int(self.get_historical('HourlyDewPointTemperature'))
 
+    def get_present_weather_type(self):
+        weather_strings = {
+            'FG':   'fog',
+            'TS':   'thunder',
+            'PL':   'sleet',
+            'GR':   'hail',
+            'GL':   'ice sheeting',
+            'DU':   'dust',
+            'HZ':   'haze',
+            'BLSN': 'drifing snow',
+            'FC':   'funnel cloud',
+            'WIND': 'high winds',
+            'BLPY': 'blowing spray',
+            'BR':   'mist',
+            'DZ':   'drizzle',
+            'FZDZ': 'freezing drizzle',
+            'RA':   'rain',
+            'FZRA': 'freezing rain',
+            'SN':   'snow',
+            'UP':   'precipitation',
+            'MIFG': 'ground fog',
+            'FZFG': 'freezing fog'
+        }
+        types = list(
+            map(
+                lambda s: weather_strings[s],
+                filter(
+                    bool,
+                    self.get_historical('HourlyPresentWeatherType').split('|')
+                )
+            )
+        )
+        return ', '.join(types)
+
+
+
     def get_relative_humidity(self):
         '''Get the relative humidity.
 
@@ -110,9 +146,9 @@ class Weather:
             dt_string = self.dt_string
 
         temperatures = map(
-            lambda t: int(t),
+            int,
             filter(
-                lambda t: t != '',
+                bool,
                 self.get_historical_range(
                     'HourlyDryBulbTemperature',
                     *self.get_daily_timestring_range(dt_string)
@@ -294,7 +330,12 @@ class Weather:
         else:
             i = self.i
         f = self.historical_headers.index(field)
-        return self.historical_data[i][f]
+
+        while i > 0:
+            if self.historical_data[i][f]:
+                return self.historical_data[i][f]
+            i = i - 1
+        return ''
 
     def get_historical_range(self, field, dt_string_lo, dt_string_hi):
         '''Get a range of historical data points. 
@@ -373,6 +414,7 @@ def index():
                                  w.get_time(),
                                  '%Y-%m-%dT%H:%M:%S'
                              ).strftime('%-I:%M%p'),
+        'present_weather':   w.get_present_weather_type(),
         'sky_conditions':    w.get_sky_conditions(),
         'temperature':       w.get_temperature(),
         'daily_forecast':    w.get_daily_forecast(),
