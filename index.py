@@ -225,16 +225,19 @@ class Weather:
             )
         return dt_strings
 
-    def get_daily_forecast(self, dt_string=None):
+    def get_daily_forecast(self, dt_string=None, future_dt_string=None):
+        if not future_dt_string:
+            future_dt_string = self.dt_string
         timestrings = self.get_daily_forecast_timestrings(dt_string)
+        future_timestrings = self.get_daily_forecast_timestrings(future_dt_string)
         forecast = [] 
-        for ts in timestrings:
+        for t in range(len(timestrings)):
             forecast.append({
-                'ts':   ts,
-                'low':  self.get_temperature_summary('min', ts),
-                'high': self.get_temperature_summary('max', ts),
+                'ts':   timestrings[t],
+                'low':  self.get_temperature_summary('min', timestrings[t]),
+                'high': self.get_temperature_summary('max', timestrings[t]),
                 'day':  datetime.datetime.strptime(
-                            ts,
+                            future_timestrings[t],
                             '%Y-%m-%dT%H:%M:%S'
                         ).strftime('%a')
             })
@@ -435,6 +438,14 @@ def index():
             w.get_future_years_with_same_weekday(now_dt_string)
         )
     )
+    future_dtstring = datetime.datetime.strptime(
+        '{}-{:02}-{:02}T00:00:00'.format(
+            future_year,
+            now.month,
+            now.day
+        ),
+        '%Y-%m-%dT%H:%M:%S'
+    ).strftime('%Y-%m-%dT%H:%M:%S')    
     future_datetime = datetime.datetime.strptime(
         '{}-{:02}-{:02}T00:00:00'.format(
             future_year,
@@ -464,7 +475,7 @@ def index():
         'present_weather':   w.get_present_weather_type(),
         'sky_conditions':    w.get_sky_conditions(),
         'temperature':       w.get_temperature(),
-        'daily_forecast':    w.get_daily_forecast(),
+        'daily_forecast':    w.get_daily_forecast(w.dt_string, future_dtstring),
         'hourly_forecast':   w.get_hourly_forecast(),
         'news':              ' '.join(w.get_news()) + ' ' + w.get_advertisement()
     })
