@@ -15,8 +15,9 @@ app = Flask(__name__)
 app.debug = True
 
 class Weather:
-    def __init__(self, datetime):
+    def __init__(self, datetime, fdt):
         self.datetime = datetime
+        self.fdt = fdt
         with open('1721388.csv') as f:
             reader = csv.reader(f)
             self.historical_headers = next(reader, None)
@@ -67,6 +68,10 @@ class Weather:
         )
 
     def get_present_weather_type(self):
+        '''Get a description of the current weather. 
+
+        :returns a string.
+        '''
         weather_strings = {
             'FG':   'fog',
             'TS':   'thunder',
@@ -203,6 +208,10 @@ class Weather:
             raise ValueError
 
     def is_beginning_of_day(self):
+        '''Check to see if the current time is 00:00:00.
+
+        :rtype bool
+        '''
         return (
             self.datetime.hour,
             self.datetime.minute,
@@ -210,6 +219,12 @@ class Weather:
         ) == (0, 0, 0)
 
     def get_beginning_of_day_weather(self):
+	'''Factory for a new Weather() object with its datetime set at the
+	beginning of the current object's day. (i.e., midnight of the current
+        day.)
+
+        :rtype Weather instance.
+        '''
         if self.is_beginning_of_day():
             return self
         else:
@@ -222,6 +237,12 @@ class Weather:
             )
 
     def get_next_day_weather(self):
+	'''Factory for a new Weather() object with its datetime set at the
+	beginning of tomorrow (i.e. midnight), relative to the current
+        instance. 
+
+        :rtype Weather instance.
+        '''
         d = self.datetime + datetime.timedelta(days=1)
         return Weather(
             datetime.datetime(
@@ -232,6 +253,13 @@ class Weather:
         )
 
     def get_previous_day_weather(self):
+	'''Factory for a new Weather() object. If the current instance's
+	datetime is at the beginning of the day, this method returns an object
+	for the previous calendar day. Otherwise it returns an object for the
+        beginning of the current day.
+
+        :rtype Weather instance.
+        '''
         if self.is_beginning_of_day():
             d = self.datetime - datetime.timedelta(days=1)
             return Weather(
@@ -245,12 +273,23 @@ class Weather:
             return self.get_beginning_of_day_weather()
 
     def is_beginning_of_hour(self):
+	'''Check to see if the current object's datetime is set to the
+        beginning of the hour, e.g. 00:00. 
+
+        :rtype bool
+        '''
         return (
             self.datetime.minute,
             self.datetime.second
         ) == (0, 0)
 
     def get_beginning_of_hour_weather(self):
+	'''Factory for a new Weather() object. If the current instance's
+	datetime is at the beginning of the hour, return the current object.
+        Otherwise return a new instance whose datetime is set to 00:00.
+
+        :rtype Weather instance.
+        '''
         if self.is_beginning_of_hour():
             return self
         else:
@@ -264,6 +303,11 @@ class Weather:
             )
      
     def get_next_hour_weather(self):
+	'''Factory for a new Weather() object with it's datetime set to the
+        next hour.
+
+        :rtype Weather instance.
+        '''
         d = self.datetime + datetime.timedelta(hours=1)
         return Weather(
             datetime.datetime(
@@ -275,6 +319,11 @@ class Weather:
         )
 
     def get_previous_hour_weather(self):
+	'''Factory for a new Weather() object with it's datetime set to the
+        beginning of the current hour or the previous hour. 
+
+        :rtype Weather instance.
+        '''
         if self.is_beginning_of_hour():
             d = self.datetime - datetime.timedelta(hours=1)
             return Weather(
@@ -288,9 +337,7 @@ class Weather:
         else:
             return self.get_beginning_of_hour_weather()
 
-    def get_daily_forecast(self, dt_string=None, future_dt_string=None):
-        if not future_dt_string:
-            future_dt_string = self.dt_string
+    def get_daily_forecast(self, dt_string=None):
         timestrings = self.get_daily_forecast_timestrings(dt_string)
         future_timestrings = self.get_daily_forecast_timestrings(future_dt_string)
         forecast = [] 
