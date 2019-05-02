@@ -17,7 +17,7 @@ app.debug = True
 class Weather:
     def __init__(self, dt_string):
         self.dt_string = dt_string
-        with open('1711054.csv') as f:
+        with open('1721388.csv') as f:
             reader = csv.reader(f)
             self.historical_headers = next(reader, None)
             self.historical_data = []
@@ -90,26 +90,13 @@ class Weather:
             'MIFG': 'ground fog',
             'FZFG': 'freezing fog'
         }
-        types = list(
-            map(
-                lambda s: weather_strings[s],
-                filter(
-                    bool,
-                    list(
-                        set(
-                            map(
-                                lambda s: re.search('[A-Z]+', s).group(0),
-                                self.get_historical(
-                                    'HourlyPresentWeatherType', 
-                                    dt_string
-                                ).split('|')
-                            )
-                        )
-                    )
-                )
-            )
-        )
-        return ', '.join(types)
+        types = set()
+        present_weather = self.get_historical('HourlyPresentWeatherType', dt_string)
+        for p in present_weather.split('|'):
+            m = re.search('[A-Z]+', p)
+            if m:
+                types.add(weather_strings[m.group(0)])
+        return ', '.join(list(types))
 
     def get_relative_humidity(self, dt_string=None):
         '''Get the relative humidity.
