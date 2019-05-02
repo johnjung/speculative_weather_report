@@ -15,16 +15,15 @@ app = Flask(__name__)
 app.debug = True
 
 class Weather:
-    def __init__(self, dt_string):
-        self.dt_string = dt_string
+    def __init__(self, datetime):
+        self.datetime = datetime
         with open('1721388.csv') as f:
             reader = csv.reader(f)
             self.historical_headers = next(reader, None)
             self.historical_data = []
             for row in reader:
                 self.historical_data.append(row)
-        self.i = self.get_closest_past_index(dt_string)
-        random.seed()
+        self.i = self.get_closest_past_index(datetime)
 
     def get_carbon_count(self, temperature_increase):
         '''Get an estimated carbon count in ppm for a temperature increase
@@ -34,23 +33,23 @@ class Weather:
         carbon_counts = (410, 480, 550, 630, 700, 800, 900, 1000, 1200, 1400)
         return carbon_counts[temperature_increase]
 
-    def get_dew_point(self, dt_string=None):
+    def get_dew_point(self):
         '''Get the dew point.
 
         :returns the dew point temperature as an integer in F. 
         '''
-        return int(self.get_historical('HourlyDewPointTemperature', dt_string))
+        return int(self.get_historical('HourlyDewPointTemperature'))
 
-    def get_heat_index(self, dt_string=None):
+    def get_heat_index(self):
         '''Calculate the heat index: see
         https://en.wikipedia.org/wiki/Heat_index.
 
         :returns a heat index temperature in F as an integer.
         '''
-        t = self.get_temperature(dt_string)
+        t = self.get_temperature()
         if t < 80:
             return None
-        r = self.get_relative_humidity(dt_string)
+        r = self.get_relative_humidity()
         if r < 40:
             return None
         return int(
@@ -67,7 +66,7 @@ class Weather:
             )
         )
 
-    def get_present_weather_type(self, dt_string=None):
+    def get_present_weather_type(self):
         weather_strings = {
             'FG':   'fog',
             'TS':   'thunder',
@@ -91,21 +90,21 @@ class Weather:
             'FZFG': 'freezing fog'
         }
         types = set()
-        present_weather = self.get_historical('HourlyPresentWeatherType', dt_string)
+        present_weather = self.get_historical('HourlyPresentWeatherType')
         for p in present_weather.split('|'):
             m = re.search('[A-Z]+', p)
             if m:
                 types.add(weather_strings[m.group(0)])
         return ', '.join(list(types))
 
-    def get_relative_humidity(self, dt_string=None):
+    def get_relative_humidity(self):
         '''Get the relative humidity.
 
         :returns the relative humidity as an integer from 0 to 100. 
         '''
-        return int(self.get_historical('HourlyRelativeHumidity', dt_string))
+        return int(self.get_historical('HourlyRelativeHumidity'))
 
-    def get_sky_conditions(self, dt_string=None):
+    def get_sky_conditions(self):
         '''Get sky conditions. These are recorded in the data in a string like:
 
         FEW:02 70 SCT:04 200 BKN:07 250
@@ -136,35 +135,33 @@ class Weather:
 
         matches = re.search(
             '([A-Z]{3}):[0-9]{2} [0-9]{3}$',
-            self.get_historical('HourlySkyConditions', dt_string)
+            self.get_historical('HourlySkyConditions')
         )
         try:
             return conditions[matches.group(1)]
         except AttributeError:
             return ''
 
-    def get_temperature(self, dt_string=None):
+    def get_temperature(self):
         '''Get the dry bulb temperature ("the temperature")
 
         :returns the temperature as an integer in F.
         '''
-        if not dt_string:
-            dt_string = self.dt_string
-        return int(self.get_historical('HourlyDryBulbTemperature', dt_string))
+        return int(self.get_historical('HourlyDryBulbTemperature'))
 
-    def get_time(self, dt_string=None):
+    def get_time(self):
         '''Get the closest past time in historical data for a specific
         date/time.
 
         :returns a datetime string.
         '''
-        return self.get_historical('DATE', dt_string)
+        return self.get_historical('DATE')
 
-    def get_visibility(self, dt_string=None):
-        return int(float(self.get_historical('HourlyVisibility', dt_string)))
+    def get_visibility(self):
+        return int(float(self.get_historical('HourlyVisibility')))
 
-    def get_wind_direction_and_speed(self, dt_string):
-        d = int(self.get_historical('HourlyWindDirection', dt_string))
+    def get_wind_direction_and_speed(self):
+        d = int(self.get_historical('HourlyWindDirection'))
         if d == 0:
             return 'still'
 
@@ -173,10 +170,10 @@ class Weather:
         i = int(round(float(d) / 22.5))
         direction = directions[i % 16]
 
-        s = self.get_historical('HourlyWindSpeed', dt_string)
+        s = self.get_historical('HourlyWindSpeed')
         return '{}mph {}'.format(s, direction)
 
-    def get_temperature_summary(self, summary_type, dt_string=None):
+    def get_temperature_summary(self, summary_type):
         '''Get the high temperature for the day.
 
         :param str summary_type: one of 'min', 'max', 'mean'
@@ -192,7 +189,7 @@ class Weather:
                 bool,
                 self.get_historical_range(
                     'HourlyDryBulbTemperature',
-                    *self.get_daily_timestring_range(dt_string)
+                    *self.get_daily_timestring_range()
                 )
             )
         )
@@ -205,25 +202,91 @@ class Weather:
         else:
             raise ValueError
 
-    def get_daily_forecast_timestrings(self, dt_string=None):
-        '''Get 6 days worth of future time strings- each timestring starts
-        from the beginning of the day.
-        '''
-        if not dt_string:
-            dt_string = self.dt_string
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', dt_string)
-        dt = datetime.datetime.strptime(
-            '{}T00:00:00'.format(m.group(1)),
-            '%Y-%m-%dT%H:%M:%S'
-        )
-        dt_strings = []
-        for d in range(1, 7):
-            dt_strings.append(
-                (dt + datetime.timedelta(days=d)).strftime(
-                    '%Y-%m-%dT%H:%M:%S'
+    def is_beginning_of_day(self):
+        return (
+            self.datetime.hour,
+            self.datetime.minute,
+            self.datetime.second
+        ) == (0, 0, 0)
+
+    def get_beginning_of_day_weather(self):
+        if self.is_beginning_of_day():
+            return self
+        else:
+            return Weather(
+                datetime.datetime(
+                    self.datetime.year,
+                    self.datetime.month,
+                    self.datetime.day
                 )
             )
-        return dt_strings
+
+    def get_next_day_weather(self):
+        d = self.datetime + datetime.timedelta(days=1)
+        return Weather(
+            datetime.datetime(
+                d.year,
+                d.month,
+                d.day
+            )
+        )
+
+    def get_previous_day_weather(self):
+        if self.is_beginning_of_day():
+            d = self.datetime - datetime.timedelta(days=1)
+            return Weather(
+                datetime.datetime(
+                    d.year,
+                    d.month,
+                    d.day
+                )
+            )
+        else:
+            return self.get_beginning_of_day_weather()
+
+    def is_beginning_of_hour(self):
+        return (
+            self.datetime.minute,
+            self.datetime.second
+        ) == (0, 0)
+
+    def get_beginning_of_hour_weather(self):
+        if self.is_beginning_of_hour():
+            return self
+        else:
+            return Weather(
+                datetime.datetime(
+                    self.datetime.year,
+                    self.datetime.month,
+                    self.datetime.day,
+                    self.datetime.hour
+                )
+            )
+     
+    def get_next_hour_weather(self):
+        d = self.datetime + datetime.timedelta(hours=1)
+        return Weather(
+            datetime.datetime(
+                d.year,
+                d.month,
+                d.day,
+                d.hour
+            )
+        )
+
+    def get_previous_hour_weather(self):
+        if self.is_beginning_of_hour():
+            d = self.datetime - datetime.timedelta(hours=1)
+            return Weather(
+                datetime.datetime(
+                    d.year,
+                    d.month,
+                    d.day,
+                    d.hour
+                )
+            )
+        else:
+            return self.get_beginning_of_hour_weather()
 
     def get_daily_forecast(self, dt_string=None, future_dt_string=None):
         if not future_dt_string:
@@ -243,26 +306,6 @@ class Weather:
             })
         return forecast
 
-    def get_hourly_forecast_timestrings(self, dt_string=None):
-        '''Get 24 hours worth of future time strings- each timestring starts
-        from the beginning of the hour.
-        '''
-        if not dt_string:
-            dt_string = self.dt_string
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
-        dt = datetime.datetime.strptime(
-            '{}:00:00'.format(m.group(1)),
-            '%Y-%m-%dT%H:%M:%S'
-        )
-        dt_strings = []
-        for h in range(1, 25):
-            dt_strings.append(
-                (dt + datetime.timedelta(hours=h)).strftime(
-                    '%Y-%m-%dT%H:%M:%S'
-                )
-            )
-        return dt_strings
-
     def get_hourly_forecast(self, dt_string=None):
         if not dt_string:
             dt_string = self.dt_string
@@ -278,53 +321,6 @@ class Weather:
                         ).strftime('%-I%p')
             })
         return forecast
-
-    def get_previous_hour_timestring(self, dt_string=None):
-        if not dt_string:
-            dt_string = self.dt_string
-        m = re.match('^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}).*$', dt_string)
-        dt = datetime.datetime.strptime(
-            '{}:00:00'.format(m.group(1)),
-            '%Y-%m-%dT%H:%M:%S'
-        )
-        return (dt - datetime.timedelta(hours=1)).strftime(
-            '%Y-%m-%dT%H:%M:%S'
-        )
-
-    def get_daily_timestring_range(self, dt_string=None):
-        '''For a given datetime string, get the earliest and latest timestrings
-        for the day.
-        '''
-        if dt_string == None:
-            dt_string = self.dt_string
-        return (
-            dt_string.split('T')[0] + 'T00:00:00',
-            dt_string.split('T')[0] + 'T23:59:59'
-        )
-
-    def get_future_years_with_same_weekday(self, dt_string=None):
-        if not dt_string:
-            dt_string = self.dt_string
-        dt = datetime.datetime.strptime(
-            dt_string,
-            '%Y-%m-%dT%H:%M:%S'
-        )
-        years = []
-        for y in range(dt.year + 1, dt.year + 100):
-            future_dt = datetime.datetime.strptime(
-                '{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
-                    y,
-                    dt.month,
-                    dt.day,
-                    dt.hour,
-                    dt.minute,
-                    dt.second
-                ),
-                '%Y-%m-%dT%H:%M:%S'
-            )
-            if dt.weekday() == future_dt.weekday():
-                years.append(y)
-        return years
 
     def get_closest_past_index(self, dt_string=None):
         '''Find the closest past index represented in historical data for a
@@ -407,6 +403,15 @@ class Weather:
                  "weather.com 2019/04/28 (verbatim)"))
         return [n[0] for n in random.sample(news, 3)]
 
+    def get_future_years_with_same_weekday(self):
+        years = []
+        for y in range(1, 100):
+            future_d = self.datetime + datetime.timedelta(year=y)
+            if future_d.weekday() == self.datetime.weekday():
+                years.append(y)
+        return years
+
+
 now = datetime.datetime.now()
 w = Weather('{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
     2010, 
@@ -421,16 +426,15 @@ w = Weather('{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
 @app.route('/', methods=['GET'])
 def index():
     now = datetime.datetime.now()
-    now_dt_string = now.strftime('%Y-%m-%dT%H:%M:%S')
 
-    w = Weather('{}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(
-        2010, 
+    historical_weather_datetime = datetime.datetime(
+        2010,
         now.month,
         now.day,
         now.hour,
         now.minute,
         now.second
-    ))
+    )
 
     future_year = min(
         filter(
@@ -438,6 +442,9 @@ def index():
             w.get_future_years_with_same_weekday(now_dt_string)
         )
     )
+
+    w = Weather(historical_weather_datetime)
+
     future_dtstring = datetime.datetime.strptime(
         '{}-{:02}-{:02}T00:00:00'.format(
             future_year,
