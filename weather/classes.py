@@ -4,32 +4,40 @@ import datetime
 import math
 import random
 import re
-import sqlite3
 import statistics
-import sys
-import textwrap
-from docopt import docopt
 
-from flask import Flask, render_template
-app = Flask(__name__)
-app.debug = True
+
+def load_historical_data_headers():
+    with open('1721388.csv') as f:
+        reader = csv.reader(f)
+        return next(reader, None)
+
+
+def load_historical_data():
+    with open('1721388.csv') as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        historical_data = []
+        for row in reader:
+            historical_data.append(row)
+        return historical_data
 
 
 class Forecast:
-    def __init__(self, datetime):
-        self.datetime = datetime
+    def __init__(self, dt):
+        self.dt = dt
         self.astral = astral.Astral()
         self.astral_city = 'Chicago'
 
-        self.current_weather = Weather(datetime)
+        self.current_weather = Weather(dt)
 
         self.daily_forecast = []
-        d = self.current_weather.datetime.replace(hour=0, minute=0, second=0)
+        d = self.current_weather.dt.replace(hour=0, minute=0, second=0)
         for i in range(1, 7):
             self.daily_forecast.append(Weather(d + datetime.timedelta(days=i)))
 
         self.hourly_forecast = []
-        d = self.current_weather.datetime.replace(minute=0, second=0)
+        d = self.current_weather.dt.replace(minute=0, second=0)
         for i in range(1, 25):
             self.daily_forecast.append(Weather(d + datetime.timedelta(hours=i)))
 
@@ -37,19 +45,25 @@ class Forecast:
 
     def daily(self):
         '''daily forecast needs to include sunrise, sunset...other events?'''
+        dt = self.dt.replace(hour=0, minute=0, second=0)
         forecast = []
-        w = self
-        for i in range(7):
-            w = w.get_next_day_weather()
-            forecast.append(w.asdict())
+        for i in range(1, 7):
+            forecast.append(
+                Weather(
+                    dt + datetime.timedelta(days=i)
+                ).asdict()
+            )
         return forecast
 
     def hourly(self):
+        dt = self.dt.replace(minute=0, second=0)
         forecast = []
-        w = self
-        for i in range(24):
-            w = w.get_next_day_weather()
-            forecast.append(w.asdict())
+        for i in range(1, 25):
+            forecast.append(
+                Weather(
+                    dt + datetime.timedelta(hours=i)
+                ).asdict()
+            )
         return forecast
 
     def moon_phase(self):
@@ -59,54 +73,51 @@ class Forecast:
             'Full Moon',
             'Last Quarter',
             'New Moon'
-        )[int(float(self.astral.moon_phase(date=self.datetime) / 7.0))]
+        )[int(float(self.astral.moon_phase(date=self.dt) / 7.0))]
 
     def next_sunrise(self):
         '''Get weather for the first future sunrise from this point.
         '''
-        sun = self.astral_city.sun(date=self.datetime)
-        if self.sun['sunrise'] > self.datetime:
+        sun = self.astral_city.sun(date=self.dt)
+        if self.sun['sunrise'] > self.dt:
             return self.sun['sunrise']
         else:
             sun = self.astral_city.sun(
-                date=self.datetime + datetime.timedelta(days=1)
+                date=self.dt + datetime.timedelta(days=1)
             )
             return self.sun['sunrise']
 
     def next_sunrise(self):
         '''Get weather for the first future sunrise from this point.
         '''
-        sun = self.astral_city.sun(date=self.datetime)
-        if self.sun['sunset'] > self.datetime:
+        sun = self.astral_city.sun(date=self.dt)
+        if self.sun['sunset'] > self.dt:
             return self.sun['sunset']
         else:
             sun = self.astral_city.sun(
-                date=self.datetime + datetime.timedelta(days=1)
+                date=self.dt + datetime.timedelta(days=1)
             )
             return self.sun['sunset']
 
     def asdict(self):
         return {
             'current_weather': self.current_weather.asdict(),
-            'daily_forecast':  self.daily_forecast(),
-            'hourly_forecast': self.hourly_forecast(),
+            'daily_forecast':  [d.asdict() for d in self.daily()],
+            'hourly_forecast': [h.asdict() for h in self.hourly()],
             'news':            self.news
         }
 
 
 class Weather:
-    def __init__(self, datetime):
+    historical_headers = load_historical_data_headers()
+    historical_data = load_historical_data()
+
+    def __init__(self, dt):
         '''Constructor
 
-	      :param datetime datetime: current date.
+	      :param dt datetime: current date.
         '''
-        self.datetime = datetime
-        with open('1721388.csv') as f:
-            reader = csv.reader(f)
-            self.historical_headers = next(reader, None)
-            self.historical_data = []
-            for row in reader:
-                self.historical_data.append(row)
+        self.dt = dt
 
     def as_of(self):
         '''Get the most recent reading time from historical data.
@@ -268,14 +279,14 @@ class Weather:
         s = self.get_historical('HourlyWindSpeed')
         return '{}mph {}'.format(s, direction)
 
-    def _get_closest_past_index(self, datetime=None):
+    def _get_closest_past_index(self, dt=None):
         '''Find the closest past index represented in historical data for a
         given date/time string.
 
         :returns an index (integer).
         '''
-        if not datetime:
-            datetime = self.datetime
+        if not dt:
+            dt = self.dt
         dt_string = datetime.strftime('%Y-%m-%dT%H:%M:%S')
         f = self.historical_headers.index('DATE')
         i = len(self.historical_data) - 1
@@ -307,7 +318,7 @@ class Weather:
 
         :returns the data as a string.
         '''
-        start_of_day = self.datetime.replace(hour=0, minute=0, second=0)
+        start_of_day = self.dt.replace(hour=0, minute=0, second=0)
         i1 = self.get_closest_past_index(start_of_day)
         i2 = self.get_closest_past_index(
             start_of_day + datetime.timedelta(days=1)
@@ -339,9 +350,9 @@ class Weather:
             raise ValueError
 
     def future_year_with_same_weekday(self, min_future_year):
-        year = min_future_year:
+        year = min_future_year
         while True:
-            if self.datetime.replace(year=year).weekday() = self.cdt.weekday():
+            if self.dt.replace(year=year).weekday() == self.cdt.weekday():
                 return year
             year += 1
 
@@ -361,6 +372,7 @@ class Weather:
             'weather_type':             self.weather_type,
             'wind_direction_and_speed': self.wind_direction_and_speed
         }
+
 
 class CurrentWeather(Weather):
     def __init__(self):
@@ -428,11 +440,3 @@ class News:
                 ("Allergy: Spring Allergy Capitals: Which City Ranks the Worst",
                  "weather.com 2019/04/28 (verbatim)"))
         return [n[0] for n in random.sample(news, 3)]
-
-
-@app.route('/', methods=['GET'])
-def index():
-    return render_template(
-        'weather.html', 
-        Forecast(datetime.datetime.now()).asdict()
-    )
