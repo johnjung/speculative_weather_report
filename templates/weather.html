@@ -60,8 +60,14 @@ div#news             { grid-area: 8 / 1  / 9 / 25; }
 </style>
 </head>
 <body>
-<div id="place_and_time">{{ place }}<br/>{{ weather_data_date }}<br/>as of {{ weather_data_time }}</div>
-<div id="image">{{ sky_conditions }}<br/>{{ present_weather }}</div>
+<div id="place_and_time">
+  {{ current_weather['place'] }}<br/>
+  as of {{ current_weather['human_readable_datetime'] }}
+</div>
+<div id="image">
+  {{ sky_conditions }}<br/>
+  {{ present_weather }}
+</div>
 <div id="current_temp">{{ temperature }}°</div>
 {% for f in hourly_forecast %}
     <div id="hourly_forecast_{{ loop.index }}">{{ f['temp'] }}<br/>{{ f['time'] }}</div>

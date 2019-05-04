@@ -29,42 +29,19 @@ class Forecast:
         self.astral = astral.Astral()
         self.astral_city = 'Chicago'
 
-        self.current_weather = Weather(dt)
+        self.current_weather = CurrentWeather(dt)
 
-        self.daily_forecast = []
+        self.daily = []
         d = self.current_weather.dt.replace(hour=0, minute=0, second=0)
         for i in range(1, 7):
-            self.daily_forecast.append(Weather(d + datetime.timedelta(days=i)))
+            self.daily.append(DailyWeather(d + datetime.timedelta(days=i)))
 
-        self.hourly_forecast = []
+        self.hourly = []
         d = self.current_weather.dt.replace(minute=0, second=0)
         for i in range(1, 25):
-            self.daily_forecast.append(Weather(d + datetime.timedelta(hours=i)))
+            self.hourly.append(HourlyWeather(d + datetime.timedelta(hours=i)))
 
         self.news = News()
-
-    def daily(self):
-        '''daily forecast needs to include sunrise, sunset...other events?'''
-        dt = self.dt.replace(hour=0, minute=0, second=0)
-        forecast = []
-        for i in range(1, 7):
-            forecast.append(
-                Weather(
-                    dt + datetime.timedelta(days=i)
-                ).asdict()
-            )
-        return forecast
-
-    def hourly(self):
-        dt = self.dt.replace(minute=0, second=0)
-        forecast = []
-        for i in range(1, 25):
-            forecast.append(
-                Weather(
-                    dt + datetime.timedelta(hours=i)
-                ).asdict()
-            )
-        return forecast
 
     def moon_phase(self):
         return (
@@ -102,9 +79,9 @@ class Forecast:
     def asdict(self):
         return {
             'current_weather': self.current_weather.asdict(),
-            'daily_forecast':  [d.asdict() for d in self.daily()],
-            'hourly_forecast': [h.asdict() for h in self.hourly()],
-            'news':            self.news
+            'daily_forecast':  [d.asdict() for d in self.daily],
+            'hourly_forecast': [h.asdict() for h in self.hourly],
+            'news':            self.news.asdict()
         }
 
 
@@ -124,7 +101,7 @@ class Weather:
 
         :returns a datetime string.
         '''
-        return self.get_historical('DATE')
+        return self._get_historical('DATE')
 
     def carbon_count(self, temperature_increase):
         '''Get an estimated carbon count in ppm for a temperature increase
@@ -139,7 +116,7 @@ class Weather:
 
         :returns the dew point temperature as an integer in F. 
         '''
-        return int(self.get_historical('HourlyDewPointTemperature'))
+        return int(self._get_historical('HourlyDewPointTemperature'))
 
     def heat_index(self):
         '''Calculate the heat index: see
@@ -147,10 +124,10 @@ class Weather:
 
         :returns a heat index temperature in F as an integer.
         '''
-        t = self.get_temperature()
+        t = self.temperature()
         if t < 80:
             return None
-        r = self.get_relative_humidity()
+        r = self.relative_humidity()
         if r < 40:
             return None
         return int(
@@ -167,12 +144,15 @@ class Weather:
             )
         )
 
+    def human_readable_datetime(self):
+        raise NotImplementedError
+
     def relative_humidity(self):
         '''Get the relative humidity.
 
         :returns the relative humidity as an integer from 0 to 100. 
         '''
-        return int(self.get_historical('HourlyRelativeHumidity'))
+        return int(self._get_historical('HourlyRelativeHumidity'))
 
     def sky_conditions(self):
         '''Get sky conditions. These are recorded in the data in a string like:
@@ -205,7 +185,7 @@ class Weather:
 
         matches = re.search(
             '([A-Z]{3}):[0-9]{2} [0-9]{3}$',
-            self.get_historical('HourlySkyConditions')
+            self._get_historical('HourlySkyConditions')
         )
         try:
             return conditions[matches.group(1)]
@@ -217,7 +197,7 @@ class Weather:
 
         :returns the temperature as an integer in F.
         '''
-        return int(self.get_historical('HourlyDryBulbTemperature'))
+        return int(self._get_historical('HourlyDryBulbTemperature'))
 
     def temperature_min(self):
         return self._temperature_summary('min')
@@ -229,7 +209,7 @@ class Weather:
         return self._temperature_summary('max')
 
     def visibility(self):
-        return int(float(self.get_historical('HourlyVisibility')))
+        return int(float(self._get_historical('HourlyVisibility')))
 
     def weather_type(self):
         '''Get a description of the current weather. 
@@ -259,7 +239,7 @@ class Weather:
             'FZFG': 'freezing fog'
         }
         types = set()
-        present_weather = self.get_historical('HourlyPresentWeatherType')
+        present_weather = self._get_historical('HourlyPresentWeatherType')
         for p in present_weather.split('|'):
             m = re.search('[A-Z]+', p)
             if m:
@@ -267,7 +247,7 @@ class Weather:
         return ', '.join(list(types))
 
     def wind_direction_and_speed(self):
-        d = int(self.get_historical('HourlyWindDirection'))
+        d = int(self._get_historical('HourlyWindDirection'))
         if d == 0:
             return 'still'
 
@@ -276,7 +256,7 @@ class Weather:
         i = int(round(float(d) / 22.5))
         direction = directions[i % 16]
 
-        s = self.get_historical('HourlyWindSpeed')
+        s = self._get_historical('HourlyWindSpeed')
         return '{}mph {}'.format(s, direction)
 
     def _get_closest_past_index(self, dt=None):
@@ -287,7 +267,7 @@ class Weather:
         '''
         if not dt:
             dt = self.dt
-        dt_string = datetime.strftime('%Y-%m-%dT%H:%M:%S')
+        dt_string = dt.strftime('%Y-%m-%dT%H:%M:%S')
         f = self.historical_headers.index('DATE')
         i = len(self.historical_data) - 1
         while i >= 0:
@@ -303,7 +283,7 @@ class Weather:
 
         :returns the data as a string.
         '''
-        i = self.get_closest_past_index()
+        i = self._get_closest_past_index()
         f = self.historical_headers.index(field)
         while i > 0:
             if self.historical_data[i][f]:
@@ -319,8 +299,8 @@ class Weather:
         :returns the data as a string.
         '''
         start_of_day = self.dt.replace(hour=0, minute=0, second=0)
-        i1 = self.get_closest_past_index(start_of_day)
-        i2 = self.get_closest_past_index(
+        i1 = self._get_closest_past_index(start_of_day)
+        i2 = self._get_closest_past_index(
             start_of_day + datetime.timedelta(days=1)
         )
         f = self.historical_headers.index(field)
@@ -358,59 +338,42 @@ class Weather:
 
     def asdict(self):
         return {
-            'as_of':                    self.as_of,
-            'carbon_count':             self.carbon_count,
-            'dew_point':                self.dew_point,
-            'heat_index':               self.heat_index,
-            'relative_humidity':        self.relative_humidity,
-            'sky_conditions':           self.sky_conditions,
-            'temperature':              self.temperature,
-            'temperature_min':          self.temperature,
-            'temperature_mean':         self.temperature,
-            'temperature_max':          self.temperature,
-            'visibility':               self.visibility,
-            'weather_type':             self.weather_type,
-            'wind_direction_and_speed': self.wind_direction_and_speed
+            'as_of':                    self.as_of(),
+            'human_readable_datetime':  self.human_readable_datetime(),
+            'carbon_count':             self.carbon_count(0),
+            'dew_point':                self.dew_point(),
+            'heat_index':               self.heat_index(),
+            'relative_humidity':        self.relative_humidity(),
+            'sky_conditions':           self.sky_conditions(),
+            'temperature':              self.temperature(),
+            'temperature_min':          self.temperature(),
+            'temperature_mean':         self.temperature(),
+            'temperature_max':          self.temperature(),
+            'visibility':               self.visibility(),
+            'weather_type':             self.weather_type(),
+            'wind_direction_and_speed': self.wind_direction_and_speed()
         }
 
 
 class CurrentWeather(Weather):
-    def __init__(self):
-        raise NotImplementedError
-
-    def human_readable_time():
-        raise NotImplementedError
-
+    def human_readable_datetime(self):
+        return self.dt.strftime('%A, %B %-d, %Y')
 
 class DailyWeather(Weather):
-    def __init__(self):
-        raise NotImplementedError
-
-    def human_readable_time():
-        raise NotImplementedError
-
+    def human_readable_datetime(self):
+        return self.dt.strftime('%A, %B %-d, %Y')
 
 class HourlyWeather(Weather):
-    def __init__(self):
-        raise NotImplementedError
-
-    def human_readable_time():
-        raise NotImplementedError
-
+    def human_readable_datetime(self):
+        return self.dt.strftime('%A, %B %-d, %Y')
 
 class Sunrise(Weather):
-    def __init__(self):
-        raise NotImplementedError
-
-    def human_readable_time():
+    def human_readable_datetime(self):
         raise NotImplementedError
 
 
 class Sunset(Weather):
-    def __init__(self):
-        raise NotImplementedError
-
-    def human_readable_time():
+    def human_readable_datetime(self):
         raise NotImplementedError
 
 
@@ -440,3 +403,6 @@ class News:
                 ("Allergy: Spring Allergy Capitals: Which City Ranks the Worst",
                  "weather.com 2019/04/28 (verbatim)"))
         return [n[0] for n in random.sample(news, 3)]
+
+    def asdict(self):
+        return {}
