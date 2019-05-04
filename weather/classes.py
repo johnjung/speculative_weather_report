@@ -79,8 +79,8 @@ class Forecast:
     def asdict(self):
         return {
             'current_weather': self.current_weather.asdict(),
-            'daily_forecast':  [d.asdict() for d in self.daily],
-            'hourly_forecast': [h.asdict() for h in self.hourly],
+            'daily':           [d.asdict() for d in self.daily],
+            'hourly':          [h.asdict() for h in self.hourly],
             'news':            self.news.asdict()
         }
 
@@ -101,7 +101,10 @@ class Weather:
 
         :returns a datetime string.
         '''
-        return self._get_historical('DATE')
+        return datetime.datetime.strptime(
+            self._get_historical('DATE'),
+            '%Y-%m-%dT%H:%M:%S'
+        ).strftime('%-I:%M%p')
 
     def carbon_count(self, temperature_increase):
         '''Get an estimated carbon count in ppm for a temperature increase
@@ -182,15 +185,14 @@ class Weather:
            'BKN': 'broken clouds',
            'OVC': 'overcast'
         }
-
         matches = re.search(
-            '([A-Z]{3}):[0-9]{2} [0-9]{3}$',
+            '([A-Z]{3}).*$',
             self._get_historical('HourlySkyConditions')
         )
         try:
             return conditions[matches.group(1)]
         except AttributeError:
-            return ''
+            return self._get_historical('HourlySkyConditions')
 
     def temperature(self):
         '''Get the dry bulb temperature ("the temperature")
@@ -267,13 +269,13 @@ class Weather:
         '''
         if not dt:
             dt = self.dt
-        dt_string = dt.strftime('%Y-%m-%dT%H:%M:%S')
+        dt_string = dt.replace(year=2010).strftime('%Y-%m-%dT%H:%M:%S')
         f = self.historical_headers.index('DATE')
         i = len(self.historical_data) - 1
         while i >= 0:
             if self.historical_data[i][f] < dt_string:
                 break
-            i = i - 1
+            i -= 1
         return i
 
     def _get_historical(self, field):
@@ -288,7 +290,7 @@ class Weather:
         while i > 0:
             if self.historical_data[i][f]:
                 return self.historical_data[i][f]
-            i = i - 1
+            i -= 1
         return ''
 
     def _get_historical_daily_range(self, field):
@@ -317,7 +319,7 @@ class Weather:
             int,
             filter(
                 bool,
-                self.get_historical_daily_range('HourlyDryBulbTemperature')
+                self._get_historical_daily_range('HourlyDryBulbTemperature')
             )
         )
         if summary_type == 'min':
@@ -332,7 +334,7 @@ class Weather:
     def future_year_with_same_weekday(self, min_future_year):
         year = min_future_year
         while True:
-            if self.dt.replace(year=year).weekday() == self.cdt.weekday():
+            if self.dt.replace(year=year).weekday() == self.dt.weekday():
                 return year
             year += 1
 
@@ -340,15 +342,16 @@ class Weather:
         return {
             'as_of':                    self.as_of(),
             'human_readable_datetime':  self.human_readable_datetime(),
+            'simulation_year':          self.future_year_with_same_weekday(2060),
             'carbon_count':             self.carbon_count(0),
             'dew_point':                self.dew_point(),
             'heat_index':               self.heat_index(),
             'relative_humidity':        self.relative_humidity(),
             'sky_conditions':           self.sky_conditions(),
             'temperature':              self.temperature(),
-            'temperature_min':          self.temperature(),
-            'temperature_mean':         self.temperature(),
-            'temperature_max':          self.temperature(),
+            'temperature_min':          self.temperature_min(),
+            'temperature_mean':         self.temperature_mean(),
+            'temperature_max':          self.temperature_max(),
             'visibility':               self.visibility(),
             'weather_type':             self.weather_type(),
             'wind_direction_and_speed': self.wind_direction_and_speed()
@@ -357,15 +360,33 @@ class Weather:
 
 class CurrentWeather(Weather):
     def human_readable_datetime(self):
-        return self.dt.strftime('%A, %B %-d, %Y')
+        return self.dt.strftime('%A, %B %-d')
 
 class DailyWeather(Weather):
     def human_readable_datetime(self):
-        return self.dt.strftime('%A, %B %-d, %Y')
+        return self.dt.strftime('%a')
+
+    def asdict(self):
+        return {
+            'as_of':                    self.as_of(),
+            'dt':                       self.dt,
+            'human_readable_datetime':  self.human_readable_datetime(),
+            'temperature_min':          self.temperature_min(),
+            'temperature_mean':         self.temperature_mean(),
+            'temperature_max':          self.temperature_max(),
+        }
 
 class HourlyWeather(Weather):
     def human_readable_datetime(self):
-        return self.dt.strftime('%A, %B %-d, %Y')
+        return self.dt.strftime('%-I%p')
+
+    def asdict(self):
+        return {
+            'as_of':                    self.as_of(),
+            'dt':                       self.dt,
+            'human_readable_datetime':  self.human_readable_datetime(),
+            'temperature':              self.temperature(),
+        }
 
 class Sunrise(Weather):
     def human_readable_datetime(self):

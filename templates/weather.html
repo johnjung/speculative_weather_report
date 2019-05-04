@@ -62,18 +62,20 @@ div#news             { grid-area: 8 / 1  / 9 / 25; }
 <body>
 <div id="place_and_time">
   {{ current_weather['place'] }}<br/>
-  as of {{ current_weather['human_readable_datetime'] }}
+  {{ current_weather['human_readable_datetime'] }}
+  {{ current_weather['simulation_year'] }}<br/>
+  as of {{ current_weather['as_of'] }}
 </div>
 <div id="image">
-  {{ sky_conditions }}<br/>
-  {{ present_weather }}
+  {{ current_weather['sky_conditions'] }}<br/>
+  {{ current_weather['present_weather'] }}
 </div>
-<div id="current_temp">{{ temperature }}°</div>
-{% for f in hourly_forecast %}
-    <div id="hourly_forecast_{{ loop.index }}">{{ f['temp'] }}<br/>{{ f['time'] }}</div>
+<div id="current_temp">{{ current_weather['temperature'] }}°</div>
+{% for f in hourly %}
+    <div id="hourly_forecast_{{ loop.index }}">{{ f['temperature'] }}<br/>{{ f['human_readable_datetime'] }}</div>
 {% endfor %}
-{% for f in daily_forecast %}
-    <div id="daily_forecast_{{ loop.index }}">{{ f['low'] }}<br/>{{ f['high'] }}<br/>{{ f['day'] }}</div>
+{% for f in daily %}
+    <div id="daily_forecast_{{ loop.index }}">{{ f['temperature_min'] }}<br/>{{ f['temperature_max'] }}<br/>{{ f['human_readable_datetime'] }}</div>
 {% endfor %}
 <div id="news">{{ news }}</div>
 </body>
