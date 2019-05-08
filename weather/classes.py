@@ -8,13 +8,15 @@ import statistics
 
 
 def load_historical_data_headers():
-    with open('1721388.csv') as f:
+    """Load the headers for historical weather data."""
+    with open('../data/1711054.csv') as f:
         reader = csv.reader(f)
         return next(reader, None)
 
 
 def load_historical_data():
-    with open('1721388.csv') as f:
+    """Load historical weather data."""
+    with open('../data/1711054.csv') as f:
         reader = csv.reader(f)
         next(reader, None)
         historical_data = []
@@ -24,7 +26,37 @@ def load_historical_data():
 
 
 class Forecast:
+    """A class to hold the data for a speculative weather forecast display.
+
+    This display shows a summary of fictional future weather by combining
+    information from three different dates: first, it uses the current date to
+    calcuate things like the days of the week and the hours of the day that
+    should appear in daily and hourly forecasts. It also uses the current date
+    to calculate upcoming sunrises and sunsets.
+
+    It then looks through historical weather data from other locations, for the
+    same date from a previous year. So, for example, it might display the
+    weather from Austin Texas on May 1, 2010 in Chicago on May 1, 2019. 
+
+    Finally, it chooses a year in the future where the current date has a
+    matching day of the week.
+
+    This object is designed to be instantiated once for each weather forecast
+    display. A Forecast contains the current weather, hourly and daily weather
+    predictions, events like sunrise, high tide, time of eclipse, etc., news,
+    and advertisements.
+    """
+
     def __init__(self, dt):
+        """Object Constructor.
+
+	Creating a new Forecast object instantiates Weather object subclasses
+	for the current weather along with daily and hourly forecasts, as well
+        as News and Advertisements objects.
+
+        Args:
+            dt (datetime.datetime)
+        """
         self.dt = dt
         self.astral = astral.Astral()
         self.astral_city = 'Chicago'
@@ -44,6 +76,11 @@ class Forecast:
         self.news = News()
 
     def moon_phase(self):
+        """Get the current moon phase.
+
+        Returns:
+            A string, one of four possible moon phases.
+        """
         return (
             'New Moon',
             'First Quarter',
@@ -53,20 +90,26 @@ class Forecast:
         )[int(float(self.astral.moon_phase(date=self.dt) / 7.0))]
 
     def next_sunrise(self):
-        '''Get weather for the first future sunrise from this point.
-        '''
+        """Get the next sunrise.
+
+        Returns:
+            A datetime.datetime object.
+        """
         sun = self.astral_city.sun(date=self.dt)
         if self.sun['sunrise'] > self.dt:
-            return self.sun['sunrise']
+            return self.sun['sunset']
         else:
             sun = self.astral_city.sun(
                 date=self.dt + datetime.timedelta(days=1)
             )
-            return self.sun['sunrise']
+            return self.sun['sunset']
 
-    def next_sunrise(self):
-        '''Get weather for the first future sunrise from this point.
-        '''
+    def next_sunset(self):
+        """Get the next sunset.
+
+        Returns:
+            A datetime.datetime object.
+        """
         sun = self.astral_city.sun(date=self.dt)
         if self.sun['sunset'] > self.dt:
             return self.sun['sunset']
@@ -77,6 +120,11 @@ class Forecast:
             return self.sun['sunset']
 
     def asdict(self):
+        """Return the forecast as a dict, for display in Jinja templates.
+
+        Returns:
+            A dict.
+        """
         return {
             'current_weather': self.current_weather.asdict(),
             'daily':           [d.asdict() for d in self.daily],
@@ -90,43 +138,47 @@ class Weather:
     historical_data = load_historical_data()
 
     def __init__(self, dt):
-        '''Constructor
+        """Constructor
 
-	      :param dt datetime: current date.
-        '''
+        Args:
+            dt (datetime.datetime)
+        """
         self.dt = dt
 
     def as_of(self):
-        '''Get the most recent reading time from historical data.
+        """Get the most recent reading time from historical data.
 
-        :returns a datetime string.
-        '''
+        Returns:
+            a string in YYYY-mm-ddTHH:MM:SS format. 
+        """
         return datetime.datetime.strptime(
             self._get_historical('DATE'),
             '%Y-%m-%dT%H:%M:%S'
         ).strftime('%-I:%M%p')
 
     def carbon_count(self, temperature_increase):
-        '''Get an estimated carbon count in ppm for a temperature increase
+        """Get an estimated carbon count in ppm for a temperature increase
         given in F, compared to current levels:
         http://dels.nas.edu/resources/static-assets/materials-based-on-reports/booklets/warming_world_final.pdf
-        '''
+        """
         carbon_counts = (410, 480, 550, 630, 700, 800, 900, 1000, 1200, 1400)
         return carbon_counts[temperature_increase]
 
     def dew_point(self):
-        '''Get the dew point.
+        """Get the dew point.
 
-        :returns the dew point temperature as an integer in F. 
-        '''
+        Returns:
+            the dew point temperature as an integer in F. 
+        """
         return int(self._get_historical('HourlyDewPointTemperature'))
 
     def heat_index(self):
-        '''Calculate the heat index: see
+        """Calculate the heat index: see
         https://en.wikipedia.org/wiki/Heat_index.
 
-        :returns a heat index temperature in F as an integer.
-        '''
+        Returns:
+            a heat index temperature in F as an integer.
+        """
         t = self.temperature()
         if t < 80:
             return None
@@ -151,14 +203,17 @@ class Weather:
         raise NotImplementedError
 
     def relative_humidity(self):
-        '''Get the relative humidity.
+        """Get the relative humidity.
 
-        :returns the relative humidity as an integer from 0 to 100. 
-        '''
+        Returns:
+            the relative humidity as an integer from 0 to 100. 
+        """
         return int(self._get_historical('HourlyRelativeHumidity'))
 
     def sky_conditions(self):
-        '''Get sky conditions. These are recorded in the data in a string like:
+        """Get sky conditions.
+
+        These are recorded in the data in a string like:
 
         FEW:02 70 SCT:04 200 BKN:07 250
  
@@ -177,7 +232,7 @@ class Weather:
 
         The last three-character chunk provides the best summary of 
         current sky conditions.
-        '''
+        """
         conditions = {
            'CLR': 'clear sky',
            'FEW': 'few clouds',
@@ -195,10 +250,11 @@ class Weather:
             return self._get_historical('HourlySkyConditions')
 
     def temperature(self):
-        '''Get the dry bulb temperature ("the temperature")
+        """Get the dry bulb temperature ("the temperature")
 
-        :returns the temperature as an integer in F.
-        '''
+        Returns:
+            the temperature as an integer in F.
+        """
         return int(self._get_historical('HourlyDryBulbTemperature'))
 
     def temperature_min(self):
@@ -214,10 +270,11 @@ class Weather:
         return int(float(self._get_historical('HourlyVisibility')))
 
     def weather_type(self):
-        '''Get a description of the current weather. 
+        """Get a description of the current weather. 
 
-        :returns a string.
-        '''
+        Returns: 
+            a string.
+        """
         weather_strings = {
             'FG':   'fog',
             'TS':   'thunder',
@@ -262,11 +319,12 @@ class Weather:
         return '{}mph {}'.format(s, direction)
 
     def _get_closest_past_index(self, dt=None):
-        '''Find the closest past index represented in historical data for a
+        """Find the closest past index represented in historical data for a
         given date/time string.
 
-        :returns an index (integer).
-        '''
+        Returns:
+            an index (integer).
+        """
         if not dt:
             dt = self.dt
         dt_string = dt.replace(year=2010).strftime('%Y-%m-%dT%H:%M:%S')
@@ -279,12 +337,14 @@ class Weather:
         return i
 
     def _get_historical(self, field):
-        '''Get a single historical data point.
+        """Get a single historical data point.
 
-        :param str field: the field name.
+        Args:
+            str field: the field name.
 
-        :returns the data as a string.
-        '''
+        Returns:
+            the data as a string.
+        """
         i = self._get_closest_past_index()
         f = self.historical_headers.index(field)
         while i > 0:
@@ -294,12 +354,14 @@ class Weather:
         return ''
 
     def _get_historical_daily_range(self, field):
-        '''Get a range of historical data points. 
+        """Get a range of historical data points. 
 
-        :param str field: the field name.
+        Args:
+            str field: the field name.
 
-        :returns the data as a string.
-        '''
+        Returns:
+            the data as a string.
+        """
         start_of_day = self.dt.replace(hour=0, minute=0, second=0)
         i1 = self._get_closest_past_index(start_of_day)
         i2 = self._get_closest_past_index(
@@ -309,12 +371,14 @@ class Weather:
         return [self.historical_data[i][f] for i in range(i1, i2 + 1)]
 
     def _temperature_summary(self, summary_type):
-        '''Get the high temperature for the day.
+        """Get the high temperature for the day.
 
-        :param str summary_type: one of 'min', 'max', 'mean'
+        Args:
+            str summary_type: one of 'min', 'max', 'mean'
 
-        :returns the high temperature as an integer in F.
-        '''
+        Returns:
+            the high temperature as an integer in F.
+        """
         temperatures = map(
             int,
             filter(
