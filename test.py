@@ -1,6 +1,6 @@
 import datetime
 import unittest
-from index import Weather
+from speculative_weather_report import Weather
 
 
 class TestWeather(unittest.TestCase):

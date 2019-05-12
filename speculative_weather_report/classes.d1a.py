@@ -7,90 +7,71 @@ import re
 import statistics
 
 
-class WeatherData:
-    def __init__(self):
-        historical_headers = self.load_historical_data_headers()
-        historical_data = self.load_historical_data()
-
-    def load_historical_data_headers():
-        """Load the headers for historical weather data."""
-        with open('../data/1711054.csv') as f:
-            reader = csv.reader(f)
-            return next(reader, None)
+def load_historical_data_headers():
+    """Load the headers for historical weather data."""
+    with open('../data/1711054.csv') as f:
+        reader = csv.reader(f)
+        return next(reader, None)
 
 
-    def load_historical_data():
-        """Load historical weather data."""
-        with open('../data/1711054.csv') as f:
-            reader = csv.reader(f)
-            next(reader, None)
-            historical_data = []
-            for row in reader:
-                historical_data.append(row)
-            return historical_data
+def load_historical_data():
+    """Load historical weather data."""
+    with open('../data/1711054.csv') as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        historical_data = []
+        for row in reader:
+            historical_data.append(row)
+        return historical_data
 
 
 class Forecast:
-    """Contains the display elements of a speculative weather forecast.
+    """A class to hold the data for a speculative weather forecast display.
 
-    Notes:
-        This display creates a fictional future weather forecast from historical
-        weather data. It does this using three different dates and two different
-        places. To start, the current date and location let us calculate the day
-        of week, sunrise time, sunset time, and other events like high tides or
-        eclipses.
+    This display shows a summary of fictional future weather by combining
+    information from three different dates: first, it uses the current date to
+    calcuate things like the days of the week and the hours of the day that
+    should appear in daily and hourly forecasts. It also uses the current date
+    to calculate upcoming sunrises and sunsets.
 
-        An alternate location allows the display to show historical weather data
-        from a place with different climate. For example, on May 1st of this
-        year in Chicago, Illinois, the forecast might display weather data from
-        May 1st, 2010 in Austin, Texas. Using historical data gives us realistic
-        looking data without having to do any weather modeling.
+    It then looks through historical weather data from other locations, for the
+    same date from a previous year. So, for example, it might display the
+    weather from Austin Texas on May 1, 2010 in Chicago on May 1, 2019. 
 
-        Finally, the forecast displays a year in the future where the day of
-        week (e.g. Tuesday) matches the current day of the week. The forecast
-        also includes a news feed and advertisements, to explore the context
-        around the weather. 
+    Finally, it chooses a year in the future where the current date has a
+    matching day of the week.
 
-        This object is designed to be instantiated once for each weather
-        forecast display.
+    This object is designed to be instantiated once for each weather forecast
+    display. A Forecast contains the current weather, hourly and daily weather
+    predictions, events like sunrise, high tide, time of eclipse, etc., news,
+    and advertisements.
     """
 
     def __init__(self, dt):
-        """constructor.
+        """Object Constructor.
 
-        Creates a new Forecast object, and instantiates Weather objects to
-        display the current weather along with daily and hourly forecasts, as
-        well objects to display the news and advertisements.
+	Creating a new Forecast object instantiates Weather object subclasses
+	for the current weather along with daily and hourly forecasts, as well
+        as News and Advertisements objects.
 
         Args:
-            dt (datetime.datetime): the current datetime, i.e.
-            datetime.datetime.now()
+            dt (datetime.datetime)
         """
         self.dt = dt
         self.astral = astral.Astral()
         self.astral_city = 'Chicago'
 
-        self.weather_data = WeatherData()
-
-        self.current_weather = CurrentWeather(self.weather_data, dt)
+        self.current_weather = CurrentWeather(dt)
 
         self.daily = []
         d = self.current_weather.dt.replace(hour=0, minute=0, second=0)
         for i in range(1, 7):
-            self.daily.append(
-                DailyWeather(
-                    self.weather_data,
-                    d + datetime.timedelta(days=i)
-                )
-            )
+            self.daily.append(DailyWeather(d + datetime.timedelta(days=i)))
 
         self.hourly = []
         d = self.current_weather.dt.replace(minute=0, second=0)
         for i in range(1, 25):
-            self.hourly.append(
-                self.weather_data,
-                HourlyWeather(d + datetime.timedelta(hours=i))
-            )
+            self.hourly.append(HourlyWeather(d + datetime.timedelta(hours=i)))
 
         self.news = News()
 
@@ -98,7 +79,7 @@ class Forecast:
         """Get the current moon phase.
 
         Returns:
-            str: One of four possible moon phases.
+            A string, one of four possible moon phases.
         """
         return (
             'New Moon',
@@ -109,10 +90,10 @@ class Forecast:
         )[int(float(self.astral.moon_phase(date=self.dt) / 7.0))]
 
     def next_sunrise(self):
-        """sunrise.
+        """Get the next sunrise.
 
         Returns:
-            datetime.datetime: the time of the next sunrise.
+            A datetime.datetime object.
         """
         sun = self.astral_city.sun(date=self.dt)
         if self.sun['sunrise'] > self.dt:
@@ -124,10 +105,10 @@ class Forecast:
             return self.sun['sunset']
 
     def next_sunset(self):
-        """sunset.
+        """Get the next sunset.
 
         Returns:
-            datetime.datetime: the time of the next sunset.
+            A datetime.datetime object.
         """
         sun = self.astral_city.sun(date=self.dt)
         if self.sun['sunset'] > self.dt:
@@ -138,60 +119,11 @@ class Forecast:
             )
             return self.sun['sunset']
 
-    def next_high_tide(self):
-        """high tide.
-
-        Returns:
-            datetime.datetime: the time of the next high tide.
-        """
-        raise NotImplementedError
-
-    def next_low_tide(self):
-        """low tide.
-
-        Returns:
-            datetime.datetime: the time of the next low tide.
-        """
-        raise NotImplementedError
-
-    def next_partial_solar_eclipse(self):
-        """partial solar eclipse.
-
-        Returns:
-            datetime.datetime: the time of the next partial solar eclipse.
-        """
-        raise NotImplementedError
-
-    def next_total_solar_eclipse(self):
-        """total solar eclipse.
-
-        Returns:
-            datetime.datetime: the time of the next total solar eclipse.
-        """
-        raise NotImplementedError
-
-    def next_transit_of_mercury(self):
-        """transit of mercury.
-
-        Returns:
-            datetime.datetime: the time of the next transit of Mercury.
-        """
-        raise NotImplementedError
-
-    def next_transit_of_venus(self):
-        """transit of Venus.
-
-        Returns:
-            datetime.datetime: the time of the next transit of Venus.
-        """
-        raise NotImplementedError
-
     def asdict(self):
-        """get the forecast as a dict, for display in Jinja templates.
+        """Return the forecast as a dict, for display in Jinja templates.
 
         Returns:
-            dict: a dictionary containing the current weather, daily and hourly
-            weather forecasts and astronomical events, news and advertisements.
+            A dict.
         """
         return {
             'current_weather': self.current_weather.asdict(),
@@ -202,6 +134,9 @@ class Forecast:
 
 
 class Weather:
+    historical_headers = load_historical_data_headers()
+    historical_data = load_historical_data()
+
     def __init__(self, dt):
         """Constructor
 
@@ -214,8 +149,7 @@ class Weather:
         """Get the most recent reading time from historical data.
 
         Returns:
-            str: the date and time of the most recent weather data reading in
-            YYYY-mm-ddTHH:MM:SS format. 
+            a string in YYYY-mm-ddTHH:MM:SS format. 
         """
         return datetime.datetime.strptime(
             self._get_historical('DATE'),
@@ -223,18 +157,9 @@ class Weather:
         ).strftime('%-I:%M%p')
 
     def carbon_count(self, temperature_increase):
-        """Get an estimated carbon count for a given temperature increase.
-
-        Args:
-            temperature_increase (int): in Fahrenheit, starting from 0.
-
-        Notes:
-            This is a very rough estimate based on the following document:
-            http://dels.nas.edu/resources/static-assets/
-            materials-based-on-reports/booklets/warming_world_final.pdf
-
-        Returns:
-            int: the carbon count.
+        """Get an estimated carbon count in ppm for a temperature increase
+        given in F, compared to current levels:
+        http://dels.nas.edu/resources/static-assets/materials-based-on-reports/booklets/warming_world_final.pdf
         """
         carbon_counts = (410, 480, 550, 630, 700, 800, 900, 1000, 1200, 1400)
         return carbon_counts[temperature_increase]
@@ -243,7 +168,7 @@ class Weather:
         """Get the dew point.
 
         Returns:
-            int: the dew point temperature in Fahrenheit.
+            the dew point temperature as an integer in F. 
         """
         return int(self._get_historical('HourlyDewPointTemperature'))
 
@@ -252,7 +177,7 @@ class Weather:
         https://en.wikipedia.org/wiki/Heat_index.
 
         Returns:
-            int: a heat index temperature in Fahrenheit.
+            a heat index temperature in F as an integer.
         """
         t = self.temperature()
         if t < 80:
@@ -275,45 +200,38 @@ class Weather:
         )
 
     def human_readable_datetime(self):
-        """Get a human readable datetime string for this object.
-
-        Raises:
-            NotImplementedError: Implement this method in subclasses.
-        """
         raise NotImplementedError
 
     def relative_humidity(self):
         """Get the relative humidity.
 
         Returns:
-            int: the relative humidity from 0 to 100.
+            the relative humidity as an integer from 0 to 100. 
         """
         return int(self._get_historical('HourlyRelativeHumidity'))
 
     def sky_conditions(self):
         """Get sky conditions.
 
-        Notes:
-            These are recorded in the data in a string like:
-            FEW:02 70 SCT:04 200 BKN:07 250
+        These are recorded in the data in a string like:
+
+        FEW:02 70 SCT:04 200 BKN:07 250
  
-            Although this data field is often blank, very often zero or more
-            data chunks in the following format will be included:
-            [A-Z]{3}:[0-9]{2} [0-9]{2}
+        Although this data field is often blank, very often zero or more data
+        chunks in the following format will be included:
 
-            The three letter sequence indicates cloud cover according to the
-            dict below. The two digit sequence immediately following indicates
-            the coverage of a layer in oktas (i.e. eigths) of sky covered. The
-            final three digit sequence describes the height of the cloud layer,
-            in hundreds of feet: e.g., 50 = 5000 feet. It is also possible for
-            this string to include data that indicates that it was not possible
-            to observe the sky because of obscuring phenomena like smoke or fog. 
+        [A-Z]{3}:[0-9]{2} [0-9]{2}
 
-            The last three-character chunk provides the best summary of current
-            sky conditions.
+        The three letter sequence indicates cloud cover according to the dict
+        below. The two digit sequence immediately following indicates the
+        coverage of a layer in oktas (i.e. eigths) of sky covered. The final 
+        three digit sequence describes the height of the cloud layer, in 
+        hundreds of feet: e.g., 50 = 5000 feet. It is also possible for this
+        string to include data that indicates that it was not possible to 
+        observe the sky because of obscuring phenomena like smoke or fog. 
 
-        Returns:
-            str: current sky conditions, e.g. 'clear sky'
+        The last three-character chunk provides the best summary of 
+        current sky conditions.
         """
         conditions = {
            'CLR': 'clear sky',
@@ -335,47 +253,27 @@ class Weather:
         """Get the dry bulb temperature ("the temperature")
 
         Returns:
-            int: the temperature in Fahrenheit.
+            the temperature as an integer in F.
         """
         return int(self._get_historical('HourlyDryBulbTemperature'))
 
     def temperature_min(self):
-        """Get the minimum daily temperature.
-
-        Returns:
-            int: the temperature in Fahrenheit.
-        """
         return self._temperature_summary('min')
 
     def temperature_mean(self):
-        """Get the mean daily temperature.
-
-        Returns:
-            int: the temperature in Fahrenheit.
-        """
         return self._temperature_summary('mean')
 
     def temperature_max(self):
-        """Get the maximum daily temperature.
-
-        Returns:
-            int: the temperature in Fahrenheit.
-        """
         return self._temperature_summary('max')
 
     def visibility(self):
-        """Get the visibility.
-
-        Returns:
-            int: visibility in miles.
-        """
         return int(float(self._get_historical('HourlyVisibility')))
 
     def weather_type(self):
-        """Get the type of weather.
+        """Get a description of the current weather. 
 
         Returns: 
-            str: a description of the current weather, e.g. 'fog'
+            a string.
         """
         weather_strings = {
             'FG':   'fog',
@@ -408,11 +306,6 @@ class Weather:
         return ', '.join(list(types))
 
     def wind_direction_and_speed(self):
-        """Get the wind direction and speed.
-
-        Returns:
-            str: e.g., '13mph SW'
-        """
         d = int(self._get_historical('HourlyWindDirection'))
         if d == 0:
             return 'still'
@@ -429,11 +322,8 @@ class Weather:
         """Find the closest past index represented in historical data for a
         given date/time string.
 
-        Args:
-            dt (datetime.datetime): A datetime to look up other than self.dt.
-
         Returns:
-            int: an index (record number) in the historical data.
+            an index (integer).
         """
         if not dt:
             dt = self.dt
@@ -447,14 +337,13 @@ class Weather:
         return i
 
     def _get_historical(self, field):
-        """Get a single historical data point. If the current data point is
-        blank, the function searches backwards for the last available data.
+        """Get a single historical data point.
 
         Args:
-            field (str): the field name.
+            str field: the field name.
 
         Returns:
-            str: the data.
+            the data as a string.
         """
         i = self._get_closest_past_index()
         f = self.historical_headers.index(field)
@@ -468,10 +357,10 @@ class Weather:
         """Get a range of historical data points. 
 
         Args:
-            field (str): the field name.
+            str field: the field name.
 
         Returns:
-            str: the data.
+            the data as a string.
         """
         start_of_day = self.dt.replace(hour=0, minute=0, second=0)
         i1 = self._get_closest_past_index(start_of_day)
@@ -482,13 +371,13 @@ class Weather:
         return [self.historical_data[i][f] for i in range(i1, i2 + 1)]
 
     def _temperature_summary(self, summary_type):
-        """Get a temperature summary for the day.
+        """Get the high temperature for the day.
 
         Args:
-            summary_type (str): one of 'min', 'max', 'mean'
+            str summary_type: one of 'min', 'max', 'mean'
 
         Returns:
-            int: the temperature summary in Fahrenheit.
+            the high temperature as an integer in F.
         """
         temperatures = map(
             int,
@@ -507,14 +396,6 @@ class Weather:
             raise ValueError
 
     def future_year_with_same_weekday(self, min_future_year):
-        """Get a future year with the same weekday (e.g. "Tuesday") as self.dt.
-
-        Args:
-            min_future_year (int): year to start checking for matching weekdays.
-
-        Returns:
-            int: the future year. 
-        """
         year = min_future_year
         while True:
             if self.dt.replace(year=year).weekday() == self.dt.weekday():
@@ -522,11 +403,6 @@ class Weather:
             year += 1
 
     def asdict(self):
-        """Get this object as a dict, for rendering in Jinja templates.
-
-        Returns:
-            dict: template data.
-        """
         return {
             'as_of':                    self.as_of(),
             'human_readable_datetime':  self.human_readable_datetime(),
@@ -548,30 +424,13 @@ class Weather:
 
 class CurrentWeather(Weather):
     def human_readable_datetime(self):
-        """Get a human readable date and time for the current weather, e.g.
-        'Tuesday, May 1.'
-
-        Returns:
-            str: the current time.
-        """
         return self.dt.strftime('%A, %B %-d')
 
 class DailyWeather(Weather):
     def human_readable_datetime(self):
-        """Get a human readable date and time for each cell in a daily weather
-        forecast, e.g. 'Tuesday'
-
-        Returns:
-            str: the weekday.
-        """
         return self.dt.strftime('%a')
 
     def asdict(self):
-        """Get information for an daily weather forecast cell.
-
-        Returns:
-            dict: forecast data.
-        """
         return {
             'as_of':                    self.as_of(),
             'dt':                       self.dt,
@@ -583,20 +442,9 @@ class DailyWeather(Weather):
 
 class HourlyWeather(Weather):
     def human_readable_datetime(self):
-        """Get a human readable date and time for each cell in an hourly
-        forecast, e.g. '2PM'
-
-        Returns:
-            str: the time.
-        """
         return self.dt.strftime('%-I%p')
 
     def asdict(self):
-        """Get information for an hourly weather forecast cell.
-
-        Returns:
-            dict: forecast data.
-        """
         return {
             'as_of':                    self.as_of(),
             'dt':                       self.dt,

@@ -10,8 +10,9 @@ import sqlite3
 import sys
 
 from docopt import docopt
-from weather import CurrentWeather, DailyWeather, Forecast, HourlyWeather, \
-                    News, Sunrise, Sunset, Weather
+from speculative_weather_report import CurrentWeather, DailyWeather, \
+                                       Forecast, HourlyWeather, News, \
+                                       Sunrise, Sunset, Weather
 
 def print_weather(f):
     sys.stdout.write(
