@@ -2,3 +2,22 @@ icons for weather types
 switch from CSV files to database
 load different cities
 load news stories
+
+import curses
+import time
+
+def main(stdscr):
+    # access to RGB colors, cool.
+    if curses.can_change_color():
+        import sys 
+        sys.exit()
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
+    pad = curses.newpad(1, 453 + curses.COLS)
+    pad.addstr(' ' * curses.COLS + 'Pellentesque neque elit, dictum at est vitae, pulvinar lacinia lacus. Etiam posuere, magna ac vulputate consectetur, quam metus eleifend justo, et elementum velit est vel magna. Curabitur in dignissim arcu. Proin euismod aliquet nisl. Curabitur justo est, hendrerit sed purus eget, efficitur venenatis enim. Fusce luctus molestie eros at suscipit. Suspendisse eget mi id elit malesuada vulputate non eget est. Donec vehicula tristique nulla ac gravida.', curses.color_pair(1))
+
+    # news ticker.
+    for x in range(0, 125):
+        pad.refresh(0, x, curses.LINES-1, 0, curses.LINES, curses.COLS-1) 
+        time.sleep(0.08)
+
+curses.wrapper(main)
