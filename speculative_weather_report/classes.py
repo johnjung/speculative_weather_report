@@ -670,21 +670,6 @@ class News:
                     weather news and the environment. This story does not
                     necessarily represent the position of our parent company.""",
                  ""),
-                ("""Owners of Kentucky's Noah's Ark Attraction Sue Over
-                    Flooding Damage.""",
-                 """It may seem a bit ironic, but the owners of Kentucky's
-                    Noah's ark attraction are suing their insurers $1 million
-                    for damages caused by flooding. The owners of the Ark
-                    Encounter are bringing a federal suit against Allied World
-                    Assurance Co. Holdings and three other insurance companies,
-                    who refused to cover damages after heavy rains caused a
-                    landslide on its access road early last year. Opened five
-                    years ago, the 510-foot-long-wooden ark has been a popular
-                    attraction. The ark was reportedly built to the dimensions
-                    specified in the story of Noah in the Bible and is the
-                    largest timber-frame structure in the world. The ark itself
-                    was not damaged in the flooding.""",
-                 "https://weather.com/news/news/2019-05-25-kentucky-noahs-ark-flooding"),
                 ("""Has Government Turned Us Into a Nation of Makers and
                     Takers?""",
                  """In a recent article produced by the Tax Policy Center, tax
