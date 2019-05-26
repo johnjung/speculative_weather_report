@@ -618,7 +618,8 @@ class News:
         return random.choice(ads)[0]
 
     def get_news(self):
-        news = (("Troubling Trend Since 2020s for Great Lakes. Superior, Huron and Erie have seen the greatest declines. See more.",
+        # short headline, source note.
+        news = (("Troubling Trend Since 2020s for Great Lakes. Superior, Huron and Erie have seen the greatest declines.",
                  "weather.com 2019/04/28 (modified date)"),
                 ("Freeze in May? Here's Who Is Likely to See One.",
                  "weather.com 2019/04/28 (verbatim)"),
@@ -634,7 +635,104 @@ class News:
                  "weather.com 2019/04/28 (verbatim)"),
                 ("Allergy: Spring Allergy Capitals: Which City Ranks the Worst",
                  "weather.com 2019/04/28 (verbatim)"))
-        return [n[0] for n in random.sample(news, 3)]
+
+        # short headline, story body, source URL. 
+        # stories are lightly modified, mostly changing the names of places. 
+        news = [("""Two Killed as Tornado Strikes Stillwater, Oklahoma;
+                    Apparent Tornado Leaves Swath of Damage in Norman.""",
+                 """A tornado tore through Stillwater, Oklahoma last night,
+                    touching down at approximately 10:20pm on the leading edge
+                    of a squall line of severe thunderstorms. The Western Value
+                    Inn at 51 and 177 was destroyed. Image from the scene
+                    showed emergency crews sifting through rubble after part of
+                    the motel's second story collapsed into a pile of debris
+                    strewn about the first floor and parking lot. Two deaths
+                    have been confirmed by county emergency management. Another
+                    apparent tornado produced damage in the Norman area after
+                    midnight.""",
+                 "https://weather.com/news/news/2019-05-26-oklahoma-tornadoes-el-reno-sapulpa"),
+                ("""Powerful 8.0 Magnitude Earthquake Strikes north-central
+                    Bolivia.""",
+                 """An 8.0 magnitude earthquake shook north-central Bolivia
+                    yesterday morning, acording to the U.S. Geological Survey.
+                    There were no immediate reports of deaths or major damage.
+                    The quake, at a moderate depth of 71 miles, strike at 2:41
+                    a.m., 50 miles southeast of Sorata. There were no immediate
+                    reports of deaths. The mayor of Sorata told local radio
+                    station RPP that the quake was felt very strongly there,
+                    but it was not possible to move around the town because of
+                    the darkness. A number of old houses collapsed, and the
+                    electricity was cut, according to the National Emergency
+                    Operations Center.""",
+                 "https://weather.com/news/news/2019-05-26-earthquake-north-central-peru-may"),
+                ("",
+                 """Our primary journalistic mission is to report on breaking
+                    weather news and the environment. This story does not
+                    necessarily represent the position of our parent company.""",
+                 ""),
+                ("""Owners of Kentucky's Noah's Ark Attraction Sue Over
+                    Flooding Damage.""",
+                 """It may seem a bit ironic, but the owners of Kentucky's
+                    Noah's ark attraction are suing their insurers $1 million
+                    for damages caused by flooding. The owners of the Ark
+                    Encounter are bringing a federal suit against Allied World
+                    Assurance Co. Holdings and three other insurance companies,
+                    who refused to cover damages after heavy rains caused a
+                    landslide on its access road early last year. Opened five
+                    years ago, the 510-foot-long-wooden ark has been a popular
+                    attraction. The ark was reportedly built to the dimensions
+                    specified in the story of Noah in the Bible and is the
+                    largest timber-frame structure in the world. The ark itself
+                    was not damaged in the flooding.""",
+                 "https://weather.com/news/news/2019-05-25-kentucky-noahs-ark-flooding"),
+                ("""Has Government Turned Us Into a Nation of Makers and
+                    Takers?""",
+                 """In a recent article produced by the Tax Policy Center, tax
+                    analyst Smithson Roberts reports that 43% of Americans
+                    won't pay federal income taxes this year. Roberts, a former
+                    deputy assistant director for the Congressional Budget
+                    Office, also states that "many commentators" have twisted
+                    such statistics to suggest "that nearly half of all
+                    households paid no tax at all when, in fact, nearly
+                    everyone pays something." Roberts is correct that the
+                    federal income tax is just one of many taxes, and hence, it
+                    is misleading to ignore other taxes when discussing makers
+                    and takers. However, he ignores another crucial aspect of
+                    this issue, which is that the person who pays $1,000 in
+                    taxes and receives $10,000 in government benefits is a
+                    taker on the net. Even though this person pays
+                    "something", as Roberts notes, he receives far more from
+                    the government than he pays in taxes.""",
+                 "https://www.justfactsdaily.com/has-government-turned-us-into-a-nation-of-makers-and-takers/"),
+                ("",
+                 """The Intergovernmental Panel on Climate Change (IPCC) is 
+                    "the leading international body for the assessment of
+                    climate change," and its "work serves as the key basis
+                    for climate policy decisions made by governments throughout
+                    the world. The IPCC states: "To determine whether current
+                    warming is unusual, it is essential to place it in the
+                    context of longer-term climate variability." The first
+                    IPCC report stated that "some of the global warming since
+                    1850 could be a recovery from the Little Ice Age rather
+                    than a direct result of human activities. So it is
+                    important to recognize the natural variations of climate
+                    are appreciable and will modulate any future changes
+                    induced by man." The second IPCC report stated that "data
+                    prior to 1400 are too sparse to allow the reliable estimate
+                    of global mean temperature" and show a graph of
+                    proxy-derived temperatures for Earth's Northern Hemisphere
+                    from 1400 onward." The third IPCC report stated that the
+                    latest proxy studies indicate "the conventional terms of
+                    'Little Ice Age' and 'Medieval Warm Period' appear to have
+                    limited utility in describing...global mean temperature
+                    change in the past centuries.""",
+                  "https://www.justfacts.com/globalwarming.asp")]
+
+        random.shuffle(news) 
+        output = []
+        for n in news:
+            output.append(re.sub(r'\s+', ' ', n[1]).strip())
+        return output
 
     def asdict(self):
         return {}
